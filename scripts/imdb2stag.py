@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import imdb
 import os.path
 import logging
