@@ -6,6 +6,7 @@ import stat
 import fuse
 
 class Stat(fuse.Stat):
+    """Base stat class, adds read perms and a/c/mtimes"""
     st_mode = stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
     st_ino = 0
     st_dev = 0
@@ -18,16 +19,15 @@ class Stat(fuse.Stat):
         self.st_atime = self.st_mtime = self.st_ctime = time.time()
 
 class LinkStat(Stat):
+    """Stat class for links"""
     st_mode = stat.S_IFLNK | Stat.st_mode
 
 class DirectoryStat(Stat):
+    """Stat class for directories"""
     st_mode = stat.S_IFDIR | Stat.st_mode
-    st_nlink = 2
+    st_nlink = 1
 
 class Node(object):
-    def __init__(self):
-        pass
-
     def _attr(self):
         return Stat()
     attr = property(_attr)
@@ -43,10 +43,7 @@ class LinkNode(Node):
         return LinkStat()
     attr = property(_attr)
 
-class DirectoryNode(Node, dict):
-    def __init__(self):
-        pass
-
+class DirectoryNode(dict, Node):
     def _attr(self):
         return DirectoryStat()
     attr = property(_attr)
@@ -67,4 +64,8 @@ class DirectoryNode(Node, dict):
         yield fuse.Direntry('..')
     
         for k in self.keys():
-            yield fuse.Direntry(k)
+            try:
+                yield fuse.Direntry(str(k))
+            except UnicodeEncodeError:
+                logging.warn("Unable to enode '%s'" % k)
+

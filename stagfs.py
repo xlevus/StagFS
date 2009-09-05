@@ -54,25 +54,12 @@ class StagFS(fuse.Fuse):
         self.parse()
         opts, args = self.cmdline
 
-        #self.data = data.DataRoot(opts.items_dir)
+        self.root_node = stag.data.RootNode(opts.items_dir)
         
-        self.root_node = stag.fs.DirectoryNode()
-        self.root_node['test1'] = stag.fs.DirectoryNode()
-        self.root_node['test1']['test1'] = stag.fs.DirectoryNode()
-        self.root_node['test2'] = stag.fs.DirectoryNode()
-        self.root_node['test2']['ttest1'] = stag.fs.DirectoryNode()
-        self.root_node['test2']['ttest2'] = stag.fs.DirectoryNode()
-        self.root_node['test3'] = stag.fs.DirectoryNode()
-        self.root_node['test3']['tttest1'] = stag.fs.DirectoryNode()
-        self.root_node['test3']['tttest2'] = stag.fs.DirectoryNode()
-        self.root_node['link1'] = stag.fs.LinkNode('/home/xin')
-
     def getNode(self, path):
-        logging.debug("Getting node for path '%s'" % path)
         return self.root_node.getNode(path)
 
     def getattr(self, path):
-        logging.debug("Requested attr for path '%s'" % path)
         node = self.getNode(path)
 
         if node is None:
@@ -81,7 +68,6 @@ class StagFS(fuse.Fuse):
         return node.attr
 
     def readdir(self, path, offset):
-        logging.debug("readdir on '%s' offset '%s'" % (path, offset))
         node = self.getNode(path)
         return node.contents()
 
@@ -93,7 +79,6 @@ class StagFS(fuse.Fuse):
 
 if __name__ == '__main__':
     setUpLogging()
-    logging.debug('\n\n')
 
     fs = StagFS()
     opts, args = fs.cmdline
