@@ -1,74 +1,107 @@
+#!/usr/bin/env python
+
 import re
 import optparse
-import os.path
+import os
+import stat
+import errno
 import logging
 import simplejson as json
 from optparse import OptionParser
 
-parser = OptionParser(usage="%prog [options] folder1 folder2 ...", version='0.1')
-parser.add_option("--debug", dest="logging_level", action="store_const", const=logging.DEBUG, help="Display debug messages", default=logging.INFO)
+import fuse
+fuse.fuse_python_api = (0,2)
 
-def curry(_curried_func, *args, **kwargs):
-      def _curried(*moreargs, **morekwargs):
-          return _curried_func(*(args+moreargs), **dict(kwargs, **morekwargs))
-      return _curried
+import stag.fs
+import stag.data
 
-def isiter_not_string(obj):
-    return hasattr(obj, '__iter__') and not isinstance(obj, (str, unicode))
-
-class DataType(dict):
-    def add_tag_set(self, name):
-        return self.setdefault(name, TagSet())
-
-class TagSet(dict):
-    def add_tags(self, tags, file_path):
-        if isiter_not_string(tags):
-            for tag in tags:
-                self.setdefault(tag,[]).append(file_path)
-        else:
-            self.setdefault(tags,[]).append(file_path)
-
-class FilePath(object):
-    def __init__(self, filename):
-        self.filename = filename
-        self.isdir = os.path.isdir(filename)
-        self.isfile = not self.isdir
+import sys
+ 
+def setUpLogging():
+    def exceptionCallback(eType, eValue, eTraceBack):
+        import cgitb
+ 
+        txt = cgitb.text((eType, eValue, eTraceBack))
+ 
+        logging.fatal(txt)
     
-    def __str__(self):
-        return self.filename
+        # sys.exit(1)
+ 
+    # configure file logger
+    logging.basicConfig(level = logging.DEBUG,
+                        format = '%(asctime)s %(levelname)s %(message)s',
+                        filename = '/tmp/stagfs.log',
+                        filemode = 'a')
     
-    def __repr__(self):
-        return "<FilePath '%s'>" % self.filename
-
-def parse_stagfile(d, stag_file_path):
-    logging.debug("Parsing stagfile '%s'" % stag_file_path)
-
-    file_root = os.path.dirname(stag_file_path)
-    data = json.load(open(stag_file_path,'r'))
+    # configure console logger
+    consoleHandler = logging.StreamHandler(sys.stdout)
+    consoleHandler.setLevel(logging.DEBUG)
     
-    datatype_container = d.setdefault(data['data_type'], DataType())
-    for filename, data in data['files'].iteritems():
-        if filename == '.':
-            filename = file_root
-        file_path = FilePath(filename)
-        for tag_set, tags in data.iteritems():
-            datatype_container.add_tag_set(tag_set).add_tags(tags, file_path)
+    consoleFormatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+    consoleHandler.setFormatter(consoleFormatter)
+    logging.getLogger().addHandler(consoleHandler)
+ 
+    # replace default exception handler
+    sys.excepthook = exceptionCallback
+    
+    logging.debug('Logging and exception handling has been set up')
+
+class StagFS(fuse.Fuse):
+    def __init__(self, *args, **kwargs):
+        fuse.Fuse.__init__(self, *args, **kwargs)
+
+        self.parser.add_option('-i', '--items-dir', dest='items_dir', metavar='dir')
+        self.parse()
+        opts, args = self.cmdline
+
+        #self.data = data.DataRoot(opts.items_dir)
+        
+        self.root_node = stag.fs.DirectoryNode()
+        self.root_node['test1'] = stag.fs.DirectoryNode()
+        self.root_node['test1']['test1'] = stag.fs.DirectoryNode()
+        self.root_node['test2'] = stag.fs.DirectoryNode()
+        self.root_node['test2']['ttest1'] = stag.fs.DirectoryNode()
+        self.root_node['test2']['ttest2'] = stag.fs.DirectoryNode()
+        self.root_node['test3'] = stag.fs.DirectoryNode()
+        self.root_node['test3']['tttest1'] = stag.fs.DirectoryNode()
+        self.root_node['test3']['tttest2'] = stag.fs.DirectoryNode()
+        self.root_node['link1'] = stag.fs.LinkNode('/home/xin')
+
+    def getNode(self, path):
+        logging.debug("Getting node for path '%s'" % path)
+        return self.root_node.getNode(path)
+
+    def getattr(self, path):
+        logging.debug("Requested attr for path '%s'" % path)
+        node = self.getNode(path)
+
+        if node is None:
+            return -errno.ENOENT
+
+        return node.attr
+
+    def readdir(self, path, offset):
+        logging.debug("readdir on '%s' offset '%s'" % (path, offset))
+        node = self.getNode(path)
+        return node.contents()
+
+    def readlink(self, path):
+        node = self.getNode(path)
+        if node == None:
+            return -errno.ENOENT
+        return node.link
 
 if __name__ == '__main__':
-    options, args = parser.parse_args()
-    logging.basicConfig(level=options.logging_level)
-    
-    stagfile_re = re.compile('.*\.stag$')
-    def find_stagfiles(arg, dirname, names):
-        func = curry(os.path.join, dirname)
-        arg.extend( map(func, filter(stagfile_re.findall, names)))
+    setUpLogging()
+    logging.debug('\n\n')
 
-    stagfiles = []
-    for path in args:
-        os.path.walk(os.path.abspath(path), find_stagfiles, stagfiles)
-
-    data = {}
-    parse_func = curry(parse_stagfile, data)
-    map(parse_func, stagfiles)
+    fs = StagFS()
+    opts, args = fs.cmdline
     
-    print data
+    if opts.items_dir == None:
+        fs.parser.print_help()
+        print "Error: Missing directory option"
+        sys.exit()
+
+    fs.main()
+    
