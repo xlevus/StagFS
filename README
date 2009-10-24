@@ -1,0 +1,9 @@
+StagFS : (C) 2009 Chris Targett : chris@xlevus.net 
+
+StagFS - Standalone tag File System
+
+StagFS is a FUSE file system designed to store and represent supplementary data 
+against files and folders.
+
+Data is stored in JSON .stag files contained within the files directory.
+
