@@ -51,7 +51,7 @@ class StagFS(fuse.Fuse):
         fuse.Fuse.__init__(self, *args, **kwargs)
 
         self.parser.add_option('-i', '--items-dir', dest='items_dir', metavar='dir')
-        self.parse()
+        self.parse(errex=1)
         opts, args = self.cmdline
 
         self.root_node = stag.data.RootNode(opts.items_dir)

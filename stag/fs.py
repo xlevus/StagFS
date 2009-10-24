@@ -11,8 +11,8 @@ class Stat(fuse.Stat):
     st_ino = 0
     st_dev = 0
     st_nlink = 0
-    st_uid = 0
-    st_gid = 0
+    st_uid = os.getuid()
+    st_gid = os.getgid()
     st_size = 0
 
     def __init__(self):
