@@ -68,11 +68,15 @@ class StagFS(fuse.Fuse):
     def __init__(self, *args, **kwargs):
         fuse.Fuse.__init__(self, *args, **kwargs)
 
-        self.parser.add_option('-i', '--items-dir', dest='items_dir', metavar='dir')
+        self.parser.add_option('--source-dir', dest='source_dir', metavar='dir')
         self.parse(errex=1)
         opts, args = self.cmdline
 
-        self.root_node = stag.data.RootNode(opts.items_dir)
+        if opts.source_dir == None:
+            print "Error: Missing source directory option. See --help for more info."
+            sys.exit()
+
+        self.root_node = stag.data.RootNode(opts.source_dir)
         
     def getNode(self, path):
         return self.root_node.getNode(path)
@@ -97,14 +101,6 @@ class StagFS(fuse.Fuse):
 
 if __name__ == '__main__':
     setUpLogging()
-
     fs = StagFS()
-    opts, args = fs.cmdline
-    
-    if opts.items_dir == None:
-        fs.parser.print_help()
-        print "Error: Missing directory option"
-        sys.exit()
-
     fs.main()
     
