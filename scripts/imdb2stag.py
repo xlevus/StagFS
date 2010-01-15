@@ -18,25 +18,55 @@
 #    along with StagFS.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+"""
+A small script to generate a StagFS .stag files for movies.
+
+It expects the movie to be in a well-formatted folder and not an individual file. e.g.
+
+    + 2001 A Space Odyssey (1968)
+        movie.stag
+        2001.A.Space.Odyssey.avi
+        2001.A.Space.Odyssey.sub
+
+    + Blade Runner (1982)
+        movie.stag
+        bladerunner.avi
+
+"""
+import sys
 import imdb
+
+if imdb.__version__ <= "4.1":
+    print "imdb2stag requires a version of IMDbPY greater than 4.1"
+    exit(1)
+
 import os.path
 import logging
 import simplejson as json
 from optparse import OptionParser
 
+# The data type of the .stag file. This will also be used as the filename
 DATA_TYPE = "movie"
 
 parser = OptionParser(usage="%prog [options] folder1 folder2 ...", version='0.1')
-parser.add_option("--data-file", dest="data_file", default="%s.stag"%DATA_TYPE, help="File to write data to")
-parser.add_option("--debug", dest="logging_level", action="store_const", const=logging.DEBUG, help="Display debug messages", default=logging.INFO)
-parser.add_option("--quiet", dest="logging_level", action="store_const", const=logging.CRITICAL, help="Display only critical errors")
-parser.add_option("--skip-write", dest="write_file", action="store_false", default=True, help="Don't actually write the tags file")
-parser.add_option("--overwrite", dest="overwrite_existing", action="store_true", default=False, help="Force overwrite of existing tag files")
-parser.add_option("--interactive", dest="interactive", action="store_true", default=False, help="Prompt for a selection on multiple results")
+parser.add_option("--data-file", dest="data_file", 
+        default="%s.stag"%DATA_TYPE, help="File to write data to")
+parser.add_option("--debug", dest="logging_level", action="store_const", 
+        const=logging.DEBUG, help="Display debug messages", default=logging.INFO)
+parser.add_option("--quiet", dest="logging_level", action="store_const", 
+        const=logging.CRITICAL, help="Display only critical errors")
+parser.add_option("--skip-write", dest="write_file", action="store_false", 
+        default=True, help="Don't actually write the tags file")
+parser.add_option("--overwrite", dest="overwrite_existing", action="store_true", 
+        default=False, help="Force overwrite of existing tag files")
+parser.add_option("--interactive", dest="interactive", action="store_true", 
+        default=False, help="Prompt for a selection on multiple results")
 
 ia = imdb.IMDb()
 
 def get_input(movie_count):
+    """Wrapper around raw_input to validate the input."""
+
     rawinput = raw_input("Select an option: ")
     try:
         input = int(rawinput)
@@ -48,6 +78,13 @@ def get_input(movie_count):
         return get_input(movie_count)
 
 def get_data_for_title(movie_name, interactive=False):
+    """
+    Searches for a film on IMDb.
+    * If only one result is found return that
+    * If no films are found, return an error.
+    * If more than one film is found, either return an error
+      when not in interactive mode, or prompt for a selection
+    """
     s_result = ia.search_movie(movie_name)
     logging.debug("Found %s results for film '%s'" % (len(s_result), movie_name))
     if len(s_result) == 1:
@@ -65,10 +102,14 @@ def get_data_for_title(movie_name, interactive=False):
             return {'error': '%s movies found' % len(s_result)}
 
 def get_data_for_movie(movie):
+    """
+    Takes an IMDbPY movie object, updates it and
+    formats it into a stagfs friendly dict.
+    """
     ia.update(movie)
     ia.update(movie, 'keywords')
 
-    data = {
+    return {
         'title': movie.get('title', []),
         'canonical_title': movie.get('canonical title', []),
         'year': movie.get('year', []),
@@ -78,7 +119,6 @@ def get_data_for_movie(movie):
         'cast': [x['name'] for x in movie.get('cast',[]) ],
         'keywords': [x.replace(u'\xa0',' ') for x in movie.get('keywords',[])]
     }
-    return data
 
 if __name__ == '__main__':
     options, args = parser.parse_args()
@@ -97,10 +137,11 @@ if __name__ == '__main__':
             if options.overwrite_existing:
                 logging.warn("Overwriting existing tag file '%s'" % data_file)
             else:
+                # Already tagged, skip it.
                 logging.debug("Tag file '%s' already exists" % data_file)
-                exit(0)
+                continue
 
-
+        # Extract the folder name from the path and attempt to find it on IMDb
         movie_name = os.path.basename(folder)
         folder_data = get_data_for_title(movie_name, options.interactive)
         
