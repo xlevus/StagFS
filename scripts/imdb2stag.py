@@ -119,7 +119,9 @@ def get_data_for_movie(movie):
         'director': [x['name'] for x in movie.get('director', [])],
         'writer': [x['name'] for x in movie.get('writer',[])],
         'cast': [x['name'] for x in movie.get('cast',[]) ],
-        'keywords': [x.replace(u'\xa0',' ') for x in movie.get('keywords',[])]
+        'keywords': [x.replace(u'\xa0',' ') for x in movie.get('keywords',[])],
+        'languages': movie.get('languages', []),
+        'countries': movie.get('countries', []),
     }
 
 if __name__ == '__main__':
