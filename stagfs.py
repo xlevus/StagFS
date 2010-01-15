@@ -76,6 +76,8 @@ class StagFS(fuse.Fuse):
             print "Error: Missing source directory option. See --help for more info."
             sys.exit()
 
+        # Initiate the RootNode. This parses all the .stag files
+        # and creates the directory structure in memory
         self.root_node = stag.data.RootNode(opts.source_dir)
         
     def getNode(self, path):

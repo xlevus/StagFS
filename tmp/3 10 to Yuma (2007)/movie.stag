@@ -1,0 +1,78 @@
+{
+    "data_type": "movie", 
+    "files": {
+        ".": {
+            "canonical_title": "3:10 to Yuma", 
+            "cast": [
+                "Glenn Ford", 
+                "Van Heflin", 
+                "Felicia Farr", 
+                "Leora Dana", 
+                "Henry Jones", 
+                "Richard Jaeckel", 
+                "Robert Emhardt", 
+                "Sheridan Comerate", 
+                "George Mitchell", 
+                "Robert Ellenstein", 
+                "Ford Rainey", 
+                "Dorothy Adams", 
+                "Danny Borzage", 
+                "John L. Cason", 
+                "Woody Chambliss", 
+                "Barry Curtis", 
+                "Richard Devon", 
+                "William Dyer Jr.", 
+                "Frank Hagney", 
+                "Bill Hale", 
+                "Jerry Hartleben", 
+                "Joe Haworth", 
+                "Robert 'Buzz' Henry", 
+                "Tex Holden", 
+                "Fred Marlow", 
+                "Tony Mayo", 
+                "Erwin Neal", 
+                "Jerry Oddo", 
+                "William Rhinehart", 
+                "Boyd Stockman", 
+                "Guy Teague", 
+                "Guy Wilkerson"
+            ], 
+            "director": [
+                "Delmer Daves"
+            ], 
+            "genre": [
+                "Action", 
+                "Adventure", 
+                "Drama", 
+                "Thriller", 
+                "Western"
+            ], 
+            "keywords": [
+                "hotel", 
+                "outlaw", 
+                "rancher", 
+                "small-town", 
+                "train", 
+                "dangerous-mission", 
+                "temptation", 
+                "shot-in-the-back", 
+                "reward", 
+                "stagecoach-robbery", 
+                "time-for-title", 
+                "prisoner", 
+                "outlaw-gang", 
+                "beautiful-woman", 
+                "sawn-off-shotgun", 
+                "human-shield", 
+                "title-spoken-by-character", 
+                "number-in-title"
+            ], 
+            "title": "3:10 to Yuma", 
+            "writer": [
+                "Elmore Leonard", 
+                "Halsted Welles"
+            ], 
+            "year": 1957
+        }
+    }
+}

@@ -28,6 +28,13 @@ import stag.fs
 import stag.utils
 
 class FilePath(stag.fs.LinkNode):
+    """
+    Contains the reference to the actual file or folder
+    and represents it as a symlink.
+
+    This could be improved to provide the actual file as
+    opposed to symlink to it.
+    """
     def __init__(self, link):
         self.link = link
         self.isdir = os.path.isdir(link)
@@ -40,48 +47,120 @@ class FilePath(stag.fs.LinkNode):
         return "<FilePath '%s'>" % self.__str__()
 
 class Tag(stag.fs.DirectoryNode):
+    """
+    Represents a tag. Contains a dictionary of
+        "filename": FilePath()
+    i.e.
+    {
+        "2001 A Space Odyssey (1968)": <FilePath '/home/media/2001 A Space Odyssey (1968)/'>,
+        "Blade Runner (1982)": <FilePath '/home/media/Blade Runner (1982)/'>,
+    }
+    """
     def add_file(self, file_path):
+        # Add a file to the tag.
         basename = os.path.basename(file_path.link)
         self[basename] = file_path
+    
+    def __repr__(self):
+        return "<Tag>"
 
 class TagSet(stag.fs.DirectoryNode):
+    """
+    Represents a set of tags. Contains a dictionary of
+        "tag-name": Tag()
+
+    i.e, for the 'director' tag-set
+    {
+        "Stanley Kubrick": <Tag>,
+        "Ridley Scott": <Tag>,
+    }
+    """
+
     def add_tags(self, tags, file_path):
-        if stag.utils.isiter_not_string(tags):
-            for tag in tags:
-                self.setdefault(tag,Tag()).add_file(file_path)
-        else:
+        """
+        Adds tag(s) to the set and assigns files to that tag.
+        """
+        if isinstance(tags, (str, unicode, int)):
+            # Single tag
+            tags = unicode(tags)
             self.setdefault(tags,Tag()).add_file(file_path)
 
+        elif isinstance(tags, (dict,)):
+            # Nested tag sets are unsupported
+            pass
+
+        else:
+            # Multiple tags
+            for tag in tags:
+                self.setdefault(tag,Tag()).add_file(file_path)
+    
+    def __repr__(self):
+        return "<TagSet>"
+
 class DataType(stag.fs.DirectoryNode):
+    """
+    Represents the data type of the tags. This is
+    the 2nd level of the filesystem.
+
+    i.e, for the 'movie' data type
+    {
+        'director': <TagSet>,
+        'year': <TagSet>,
+    }
+    """
     def add_tag_set(self, name):
         return self.setdefault(name, TagSet())
+    
+    def __repr__(self):
+        return "<DataType>"
 
 class RootNode(stag.fs.DirectoryNode):
+    """
+    Walks the source directory looking for .stag files and
+    creates a tree of stag.fs.Nodes representing the final FS.
+
+    Contains a dictionary of data-type-name: DataType()
+    i.e.
+    {
+        'movie': <DataType>,
+        'TV': <DataType>,
+    }
+    """
 
     def __init__(self, *dirs):
         for dir in dirs:
             os.path.walk(dir, self.find_data_containers, None)
 
     def find_data_containers(self, arg, directory, contents):
-        pass
         func = stag.utils.curry(os.path.join, directory)
         for file in map(func, contents):
             if file.endswith('.stag'):
                 self.load_data(file)
 
     def load_data(self, container_path):
+        """
+        Loads the .stag files and turns them into stag.fs.Node objects
+        """
         data = json.load(open(container_path, 'r'))
        
         data_type = self.setdefault(data['data_type'], DataType())
         
         file_root = os.path.dirname(os.path.abspath(container_path))
-        for filename, data in data['files'].iteritems():    
-            if filename == '.':
+
+        # Iterate through the define files.
+        for filename, data in data['files'].iteritems():
+            if filename == '.': # tags are for the folder not its contents
                 filename = file_root
             else:
                 filename = os.path.join(file_root, filename)
 
+                # Avoid creating dead links
+                if not os.path.exists(filename):
+                    continue
+           
+            file_path = FilePath(filename)
+        
             for tag_set, tags in data.iteritems():
-                file_path = FilePath(filename)
-                data_type.add_tag_set(tag_set).add_tags(tags, file_path)
+                ts = data_type.add_tag_set(tag_set) # Add the TagSet to the DataType
+                ts.add_tags(tags, file_path)        # Add the tags to the tag-set
 

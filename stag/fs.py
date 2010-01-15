@@ -85,5 +85,5 @@ class DirectoryNode(dict, Node):
             try:
                 yield fuse.Direntry(str(k))
             except UnicodeEncodeError:
-                logging.warn("Unable to enode '%s'" % k)
+                logging.warn("Unable to encode '%s'" % k)
 

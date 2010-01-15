@@ -1,0 +1,73 @@
+{
+    "data_type": "movie", 
+    "files": {
+        ".": {
+            "canonical_title": "10 Items or Less", 
+            "cast": [
+                "Morgan Freeman", 
+                "Paz Vega", 
+                "Jonah Hill", 
+                "Anne Dudek", 
+                "Francisca Hernandez", 
+                "Nacho Pina", 
+                "Hector Running-Hawk", 
+                "Alexis Hernandez", 
+                "Silvia Curiel", 
+                "Shawn Calizo", 
+                "Kumar Pallana", 
+                "Rosa Diaz", 
+                "Hector Atreyu Ruiz", 
+                "Bobby Cannavale", 
+                "Leonardo Nam", 
+                "Jennifer Echols", 
+                "Alexandra Berardi", 
+                "Matthew Perales", 
+                "Alfonso Gutierrez", 
+                "Mary Vargas", 
+                "Jim Parsons", 
+                "Eddie 'Piolin' Sotelo", 
+                "Danny DeVito", 
+                "Rhea Perlman", 
+                "Ski Carr", 
+                "Vivianne Nacif", 
+                "Scott Norris", 
+                "Emiliano Torres"
+            ], 
+            "director": [
+                "Brad Silberling"
+            ], 
+            "genre": [
+                "Comedy", 
+                "Drama", 
+                "Romance"
+            ], 
+            "keywords": [
+                "interview", 
+                "change", 
+                "cashier", 
+                "number-10-in-title", 
+                "california", 
+                "shop", 
+                "los-angeles", 
+                "refinery", 
+                "shopping", 
+                "faun", 
+                "car-wash", 
+                "takes-place-in-one-day", 
+                "car", 
+                "target-store", 
+                "beautiful-woman", 
+                "grocery-store", 
+                "friendship", 
+                "one-day", 
+                "number-in-title", 
+                "title-spoken-by-character"
+            ], 
+            "title": "10 Items or Less", 
+            "writer": [
+                "Brad Silberling"
+            ], 
+            "year": 2006
+        }
+    }
+}

@@ -7,3 +7,41 @@ against files and folders.
 
 Data is stored in JSON .stag files contained within the files directory.
 
+Notes:
+ * Filenames are relative to the .stag file.
+ * Nested tag-sets are not yet supported.
+ * You cannot have multiple data types in one .stag file
+
+JSON layout:
+    {
+        "data_type": "data-type",
+        "files": {
+            "filename1": {
+                "tag-set1": "single-tag",
+                "tag-set2": ["multiple-tag1", "multiple-tag2", ...],
+                "tag-set3": ["other-multiple-tag"]
+            },
+            "filename2": {
+                "tag-set1": ["multiple-tag2"],
+                "tag-set3": ["other-multiple-tag"]
+            },
+            ...
+        }
+    }
+
+Resulting file tree:
+    data-type/
+        tag-set1/
+            single-tag/
+                filename1
+        tag-set2/
+            multiple-tag1/
+                filename1
+            multiple-tag2/
+                filename1
+                filename2
+        tag-set3/
+            other-multiple-tag/
+                filename1
+                filename2
+

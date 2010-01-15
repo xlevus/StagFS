@@ -106,6 +106,8 @@ def get_data_for_movie(movie):
     Takes an IMDbPY movie object, updates it and
     formats it into a stagfs friendly dict.
     """
+
+    # Not all data was retrieved so update the movie object
     ia.update(movie)
     ia.update(movie, 'keywords')
 

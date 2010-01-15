@@ -1,0 +1,20 @@
+{
+    "data_type": "movie", 
+    "files": {
+        ".": {
+            "canonical_title": "2001: A Space Road Odyssey", 
+            "cast": [
+                "Steve Anthony", 
+                "Natasha Eloi"
+            ], 
+            "director": [], 
+            "genre": [], 
+            "keywords": [
+                "number-in-title"
+            ], 
+            "title": "2001: A Space Road Odyssey", 
+            "writer": [], 
+            "year": 2001
+        }
+    }
+}

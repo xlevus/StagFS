@@ -1,0 +1,37 @@
+{
+    "data_type": "movie", 
+    "files": {
+        ".": {
+            "canonical_title": "10 Questions for the Dalai Lama", 
+            "cast": [
+                "Lama The Dalai", 
+                "Tenzin Tethong"
+            ], 
+            "director": [
+                "Rick Ray"
+            ], 
+            "genre": [
+                "Documentary"
+            ], 
+            "keywords": [
+                "india", 
+                "dalai-lama", 
+                "dharamsala", 
+                "tibet", 
+                "non-violence", 
+                "buddhism", 
+                "peace", 
+                "china", 
+                "world-peace", 
+                "digit-in-title", 
+                "compassion", 
+                "number-in-title"
+            ], 
+            "title": "10 Questions for the Dalai Lama", 
+            "writer": [
+                "Rick Ray"
+            ], 
+            "year": 2006
+        }
+    }
+}

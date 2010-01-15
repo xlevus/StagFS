@@ -1,0 +1,39 @@
+{
+    "data_type": "movie", 
+    "files": {
+        ".": {
+            "canonical_title": "24 hs en la city", 
+            "cast": [
+                "Lola Cordero", 
+                "Rodrigo Arag\u00f3n", 
+                "Pablo Turchinsky", 
+                "Jorge Velurtas", 
+                "Roxana Randon", 
+                "Karen Kim", 
+                "Luis Luque", 
+                "Daniel Miglioranza"
+            ], 
+            "director": [
+                "Ezio Massa", 
+                "Jorge Bechara", 
+                "Mat\u00edas Lago", 
+                "Federico Rozenberg", 
+                "Andr\u00e9s Shakespear"
+            ], 
+            "genre": [
+                "Comedy", 
+                "Thriller"
+            ], 
+            "keywords": [], 
+            "title": "24 hs en la city", 
+            "writer": [
+                "Jorge Bechara", 
+                "Mat\u00edas Lago", 
+                "Ezio Massa", 
+                "Federico Rozenberg", 
+                "Andr\u00e9s Shakespear"
+            ], 
+            "year": 2003
+        }
+    }
+}
