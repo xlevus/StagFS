@@ -94,7 +94,7 @@ def get_title_from_google(movie_name, interactive=False):
         first_result = json.loads(data_string)["responseData"]["results"][0]
         m = re.match("http://www.imdb.com/title/tt(.*)/", first_result["url"])
         imdb_id = m.groups()[0]
-    except IndexError:
+    except (AttributeError, IndexError):
         raise NoMovieFound("Unable to find movie for '%s'" % movie_name)
 
     return ia.get_movie(imdb_id)
