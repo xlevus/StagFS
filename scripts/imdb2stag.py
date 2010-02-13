@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 #    Copyright (C) 2009  Chris Targett  <chris@xlevus.net>
+#    Contributions by: Lachlan Stuart.
 #
 #    This file is part of StagFS.
 #
@@ -33,8 +34,11 @@ It expects the movie to be in a well-formatted folder and not an individual file
         bladerunner.avi
 
 """
+import re
 import sys
 import imdb
+import urllib
+import urllib2
 
 if imdb.__version__ <= "4.1":
     print "imdb2stag requires a version of IMDbPY greater than 4.1"
@@ -51,18 +55,23 @@ DATA_TYPE = "movie"
 parser = OptionParser(usage="%prog [options] folder1 folder2 ...", version='0.1')
 parser.add_option("--data-file", dest="data_file", 
         default="%s.stag"%DATA_TYPE, help="File to write data to")
-parser.add_option("--debug", dest="logging_level", action="store_const", 
+parser.add_option("--debug", '-d', dest="logging_level", action="store_const", 
         const=logging.DEBUG, help="Display debug messages", default=logging.INFO)
 parser.add_option("--quiet", dest="logging_level", action="store_const", 
         const=logging.CRITICAL, help="Display only critical errors")
 parser.add_option("--skip-write", dest="write_file", action="store_false", 
         default=True, help="Don't actually write the tags file")
-parser.add_option("--overwrite", dest="overwrite_existing", action="store_true", 
+parser.add_option("--overwrite", '-F', dest="overwrite_existing", action="store_true", 
         default=False, help="Force overwrite of existing tag files")
 parser.add_option("--interactive", dest="interactive", action="store_true", 
         default=False, help="Prompt for a selection on multiple results")
+parser.add_option('--jfgi', dest='google', action='store_true', default=False,
+        help="Google the title instead of use IMDb")
 
 ia = imdb.IMDb()
+
+class NoMovieFound(Exception):
+    pass
 
 def get_input(movie_count):
     """Wrapper around raw_input to validate the input."""
@@ -77,7 +86,20 @@ def get_input(movie_count):
         print "Unable to parse '%s'" % rawinput
         return get_input(movie_count)
 
-def get_data_for_title(movie_name, interactive=False):
+def get_title_from_google(movie_name, interactive=False):
+    try:
+        query = urllib.quote("site:www.imdb.com/title/ " + movie_name)
+        url = 'http://ajax.googleapis.com/ajax/services/search/web?v=1.0&q=' + query
+        data_string = urllib2.urlopen(url).read()
+        first_result = json.loads(data_string)["responseData"]["results"][0]
+        m = re.match("http://www.imdb.com/title/tt(.*)/", first_result["url"])
+        imdb_id = m.groups()[0]
+    except IndexError:
+        raise NoMovieFound("Unable to find movie for '%s'" % movie_name)
+
+    return ia.get_movie(imdb_id)
+
+def get_title_from_imdb(movie_name, interactive=False):
     """
     Searches for a film on IMDb.
     * If only one result is found return that
@@ -90,16 +112,16 @@ def get_data_for_title(movie_name, interactive=False):
     if len(s_result) == 1:
         return get_data_for_movie(s_result[0])
     elif len(s_result) == 0:
-        return {'error':'No movies found'}
+        raise NoMovieFound("Unable to find movie for '%s'" % movie_name)
     else:
         if interactive:
             for i,movie in enumerate(s_result):
                 print u"\t%s: %s (%s) (%s)" % (i+1, movie, movie.get('year', 'Unknown'), movie.get('kind', 'unknown'))
             result_num = get_input(len(s_result))
             print
-            return get_data_for_movie(s_result[result_num])
+            return s_result[result_num]
         else:
-            return {'error': '%s movies found' % len(s_result)}
+            raise NoMovieFound("Found %s results for for '%s'" % (len(s_result), movie_name))
 
 def get_data_for_movie(movie):
     """
@@ -146,8 +168,16 @@ if __name__ == '__main__':
                 continue
 
         # Extract the folder name from the path and attempt to find it on IMDb
-        movie_name = os.path.basename(folder)
-        folder_data = get_data_for_title(movie_name, options.interactive)
+        try:
+            movie_name = os.path.basename(folder)
+            if options.google:
+                movie_obj = get_title_from_google(movie_name, False)
+            else:
+                movie_obj = get_title_from_imdb(movie_name, options.interactive)
+            folder_data = get_data_for_movie(movie_obj)
+        except (NoMovieFound, urllib2.URLError), e:
+            logging.error(e)
+            continue
         
         data = {
             'data_type': DATA_TYPE,
@@ -158,10 +188,15 @@ if __name__ == '__main__':
 
         if options.write_file:
             if folder_data.has_key('error'):
-                logging.warn("Found an error in '%s'" % data_file)
+                logging.info("Found an error in '%s'" % data_file)
 
-            f = open(data_file, 'w')
-            json.dump(data, f, indent=4, sort_keys=True)
-            logging.debug("Wrote tag file '%s'" % data_file)
+            try:
+                f = open(data_file, 'w')
+                json.dump(data, f, indent=4, sort_keys=True)
+                logging.debug("Wrote tag file '%s'" % data_file)
+            except IOError, e:
+                logging.error("Error writing to '%s': %s" % (e.filename, e.strerror))
 
-        print
+        logging.info("Processed '%s'" % folder )
+
+    print
