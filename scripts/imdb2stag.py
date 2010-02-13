@@ -147,11 +147,12 @@ def get_data_for_movie(movie):
         'imdb_id': 'tt%s' % movie.getID(),
     }
 
-    from math import floor, ceil
 
     rating = movie.get('rating')
-    output['rating (exact)'] = str(rating)
-    output['rating (range)'] = '%g.0-%g.9' % (floor(rating), floor(rating))
+    if rating is not None:
+        from math import floor
+        output['rating (exact)'] = str(rating)
+        output['rating (range)'] = '%g.0-%g.9' % (floor(rating), floor(rating))
 
     return output
 
