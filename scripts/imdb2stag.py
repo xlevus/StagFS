@@ -110,7 +110,7 @@ def get_title_from_imdb(movie_name, interactive=False):
     s_result = ia.search_movie(movie_name)
     logging.debug("Found %s results for film '%s'" % (len(s_result), movie_name))
     if len(s_result) == 1:
-        return get_data_for_movie(s_result[0])
+        return s_result[0]
     elif len(s_result) == 0:
         raise NoMovieFound("Unable to find movie for '%s'" % movie_name)
     else:
@@ -144,7 +144,7 @@ def get_data_for_movie(movie):
         'keywords': [x.replace(u'\xa0',' ') for x in movie.get('keywords',[])],
         'languages': movie.get('languages', []),
         'countries': movie.get('countries', []),
-        'imdb_url': 'http://www.imdb.com/title/tt%s/' % movie.getID(),
+        'imdb_id': 'tt%s' % movie.getID(),
     }
 
     from math import floor, ceil
