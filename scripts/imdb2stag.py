@@ -133,7 +133,7 @@ def get_data_for_movie(movie):
     ia.update(movie)
     ia.update(movie, 'keywords')
 
-    return {
+    output = {
         'title': movie.get('title', []),
         'canonical_title': movie.get('canonical title', []),
         'year': movie.get('year', []),
@@ -144,7 +144,16 @@ def get_data_for_movie(movie):
         'keywords': [x.replace(u'\xa0',' ') for x in movie.get('keywords',[])],
         'languages': movie.get('languages', []),
         'countries': movie.get('countries', []),
+        'imdb_url': 'http://www.imdb.com/title/tt%s/' % movie.getID(),
     }
+
+    from math import floor, ceil
+
+    rating = movie.get('rating')
+    output['rating (exact)'] = str(rating)
+    output['rating (range)'] = '%g.0-%g.9' % (floor(rating), floor(rating))
+
+    return output
 
 if __name__ == '__main__':
     options, args = parser.parse_args()
