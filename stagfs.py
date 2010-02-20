@@ -19,8 +19,8 @@
 #
 
 import re
-import optparse
 import os
+import sys
 import stat
 import errno
 import logging
@@ -33,7 +33,6 @@ fuse.fuse_python_api = (0,2)
 import stag.fs
 import stag.data
 
-import sys
  
 def setUpLogging():
     def exceptionCallback(eType, eValue, eTraceBack):
@@ -107,4 +106,4 @@ if __name__ == '__main__':
     setUpLogging()
     fs = StagFS()
     fs.main()
-    
+
