@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 #    Copyright (C) 2010  Chris Targett  <chris@xlevus.net>
 #
 #    This file is part of StagFS.
@@ -18,13 +16,14 @@
 #    along with StagFS.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from stag.logs import setup_logging
-from stag.fs import StagFuse
+import time
+import threading
+import logging
+logger = logging.getLogger('stagfs.inotify')
 
-if __name__ == '__main__':
-    setup_logging()
-
-    fs = StagFuse()
-    fs.multithreaded = 1
-    fs.main()
+class InotifyWatcher(threading.Thread):
+    def run(self):
+        while True:
+            logger.debug("Inotify Tick")
+            time.sleep(3)
 
