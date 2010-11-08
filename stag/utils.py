@@ -1,4 +1,4 @@
-#    Copyright (C) 2009  Chris Targett  <chris@xlevus.net>
+#    Copyright (C) 2010  Chris Targett  <chris@xlevus.net>
 #
 #    This file is part of StagFS.
 #

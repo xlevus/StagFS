@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#    Copyright (C) 2009  Chris Targett  <chris@xlevus.net>
+#    Copyright (C) 2010  Chris Targett  <chris@xlevus.net>
 #
 #    This file is part of StagFS.
 #
@@ -18,92 +18,6 @@
 #    along with StagFS.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import re
-import os
-import sys
-import stat
-import errno
-import logging
-import simplejson as json
-from optparse import OptionParser
-
-import fuse
-fuse.fuse_python_api = (0,2)
-
-import stag.fs
-import stag.data
-
- 
-def setUpLogging():
-    def exceptionCallback(eType, eValue, eTraceBack):
-        import cgitb
- 
-        txt = cgitb.text((eType, eValue, eTraceBack))
- 
-        logging.fatal(txt)
-    
-        # sys.exit(1)
- 
-    # configure file logger
-    logging.basicConfig(level = logging.DEBUG,
-                        format = '%(asctime)s %(levelname)s %(message)s',
-                        filename = '/tmp/stagfs.log',
-                        filemode = 'a')
-    
-    # configure console logger
-    consoleHandler = logging.StreamHandler(sys.stdout)
-    consoleHandler.setLevel(logging.DEBUG)
-    
-    consoleFormatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-    consoleHandler.setFormatter(consoleFormatter)
-    logging.getLogger().addHandler(consoleHandler)
- 
-    # replace default exception handler
-    sys.excepthook = exceptionCallback
-    
-    logging.debug('Logging and exception handling has been set up')
-
-class StagFS(fuse.Fuse):
-    def __init__(self, *args, **kwargs):
-        fuse.Fuse.__init__(self, *args, **kwargs)
-
-        self.parser.add_option('--source-dir', dest='source_dir', metavar='dir')
-        self.parse(errex=1)
-        opts, args = self.cmdline
-
-        if opts.source_dir == None:
-            print "Error: Missing source directory option. See --help for more info."
-            sys.exit()
-
-        self.source_dir = opts.source_dir
-
-        # Initiate the RootNode. This parses all the .stag files
-        # and creates the directory structure in memory
-        self.root_node = stag.data.RootNode(self.source_dir)
-        
-    def getNode(self, path):
-        return self.root_node.getNode(path)
-
-    def getattr(self, path):
-        node = self.getNode(path)
-
-        if node is None:
-            return -errno.ENOENT
-
-        return node.attr
-
-    def readdir(self, path, offset):
-        node = self.getNode(path)
-        return node.contents()
-
-    def readlink(self, path):
-        node = self.getNode(path)
-        if node == None:
-            return -errno.ENOENT
-        return node.link
-
 if __name__ == '__main__':
-    setUpLogging()
-    fs = StagFS()
-    fs.main()
+    pass
 
