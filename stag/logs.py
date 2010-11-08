@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 #    Copyright (C) 2010  Chris Targett  <chris@xlevus.net>
 #
 #    This file is part of StagFS.
@@ -18,13 +16,22 @@
 #    along with StagFS.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from stag.logs import setup_logging
-from stag.fs import StagFuse
+import sys
+import logging
 
-if __name__ == '__main__':
-    setup_logging()
+logger = logging.getLogger('stagfs')
 
-    fs = StagFuse()
-    fs.multithreaded = 0
-    fs.main()
+def setup_logging():
+    def exceptionCallback(eType, eValue, eTraceBack):
+        import cgitb
+        txt = cgitb.text((eType, eValue, eTraceBack))
+        logger.critical(txt)
 
+    logging.basicConfig(level = logging.DEBUG,
+            format = '%(asctime)s %(levelname)s %(name)s: %(message)s',
+            filename = '/tmp/stagfs.log',
+            filemode = 'a')
+ 
+    sys.excepthook = exceptionCallback # replace default exception handler
+    
+    logging.debug('Logging and exception handling has been set up')
