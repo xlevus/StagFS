@@ -1,3 +1,21 @@
+#    Copyright (C) 2010  Chris Targett  <chris@xlevus.net>
+#
+#    This file is part of StagFS.
+#
+#    StagFS is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    StagFS is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with StagFS.  If not, see <http://www.gnu.org/licenses/>.
+#
+
 import sqlite3
 import logging
 
@@ -19,8 +37,11 @@ CREATE_TABLE = """
 
 class CursorWrapper(object):
     """
-    Wrapper around sqlite3.connect() and sqlite3.cursor().
-    If needed, locking will be implemented here.
+    Wrapper around sqlite3.connect() and sqlite3.cursor(). Assures
+    that each connection talks to the same place, and creates the
+    table if it's needed.
+
+    If locking is needed, it will be implemented here.
     """
     def __init__(self):
         self.conn = sqlite3.connect(DB_FILE)
