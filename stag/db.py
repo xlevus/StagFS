@@ -5,6 +5,7 @@ DB_FILE = 'stagfs.sqlite'
 CREATE_TABLE = """
     CREATE TABLE IF NOT EXISTS stagfs ( 
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        datatype VARCHAR(25) NOT NULL,
         parent INTEGER REFERENCES stagfs (id),
         part VARCHAR(50) DEFAULT "" NOT NULL,
         realfile VARCHAR(255) DEFAULT NULL,
@@ -13,17 +14,16 @@ CREATE_TABLE = """
 """
 
 
-class DBWrapper(object):
+class CursorWrapper(object):
     def __init__(self):
         self.conn = sqlite3.connect(DB_FILE)
+        self.conn.execute(CREATE_TABLE)
+        self.conn.commit()
 
-        cursor = conn.cursor()
-        cursor.execute(CREATE_TABLE)
-        conn.commit()
-        cursor.close()
+    def __call__(self, *args, **kwargs):
+        cursor = self.conn.cursor()
+        cursor.execute(*args, **kwargs)
+        return cursor
 
-    def get_cursor(self):
-        return conn.cursor()
-
-    def release_cursor(self):
-        pass
+    def commit(self):
+        return self.conn.commit()

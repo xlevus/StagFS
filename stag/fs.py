@@ -40,6 +40,8 @@ class StagFuse(fuse.Fuse):
             print "Error: Missing --config option. See --help for more info."
             sys.exit()
 
+        data.load_initial()
+
         logger.debug('Fuse init complete.')
 
     def fsinit(self):

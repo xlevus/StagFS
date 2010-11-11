@@ -16,16 +16,35 @@
 #    along with StagFS.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+
+import os
 import time
 import threading
 import logging
-logger = logging.getLogger('stagfs.inotify')
 
-import db
+from utils import curry
+import loaders
+
+logger = logging.getLogger('stagfs.data')
+
+SOURCE_FOLDERS = ['test_source']
 
 class Watcher(threading.Thread):
     def run(self):
         while True:
             logger.debug("Inotify Tick")
-            time.sleep(3)
+            time.sleep(10)
 
+def process_folder(loaders, directory, contents):
+    func = curry(os.path.join, directory)
+    for source_file in map(func, contents):
+        for extension, loader in loaders:
+            if source_file.endswith("."+extension):
+                logger.debug("Found %r. Loading with %r" % (source_file, loader))
+
+                loader(source_file)
+
+def load_initial():
+    for dir in SOURCE_FOLDERS:
+        os.path.walk(dir, process_folder, (('stag', loaders.StagfileLoader),))
+    
