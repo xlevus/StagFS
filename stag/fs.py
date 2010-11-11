@@ -26,7 +26,7 @@ fuse.fuse_python_api = (0,2)
 
 logger = logging.getLogger('stagfs.fuse')
 
-import fsnotify
+import data
 
 class StagFuse(fuse.Fuse):
     def __init__(self, *args, **kw):
@@ -43,7 +43,7 @@ class StagFuse(fuse.Fuse):
         logger.debug('Fuse init complete.')
 
     def fsinit(self):
-        self.inotify = fsnotify.InotifyWatcher(name='inotify-watcher')
+        self.inotify = data.InotifyWatcher(name='inotify-watcher')
         self.inotify.start()
 
     def getattr(self, path):

@@ -21,7 +21,9 @@ import threading
 import logging
 logger = logging.getLogger('stagfs.inotify')
 
-class InotifyWatcher(threading.Thread):
+import db
+
+class Watcher(threading.Thread):
     def run(self):
         while True:
             logger.debug("Inotify Tick")
