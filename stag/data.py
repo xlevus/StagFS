@@ -41,7 +41,6 @@ def process_folder(loaders, directory, contents):
         for extension, loader in loaders:
             if source_file.endswith("."+extension):
                 logger.debug("Found %r. Loading with %r" % (source_file, loader))
-
                 loader(source_file)
 
 def load_initial():

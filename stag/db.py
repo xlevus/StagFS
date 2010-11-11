@@ -18,6 +18,10 @@ CREATE_TABLE = """
 
 
 class CursorWrapper(object):
+    """
+    Wrapper around sqlite3.connect() and sqlite3.cursor().
+    If needed, locking will be implemented here.
+    """
     def __init__(self):
         self.conn = sqlite3.connect(DB_FILE)
         self.conn.execute(CREATE_TABLE)
@@ -25,7 +29,6 @@ class CursorWrapper(object):
 
     def __call__(self, *args, **kwargs):
         cursor = self.conn.cursor()
-        logging.debug("SQL: %r %r" % args)
         cursor.execute(*args, **kwargs)
         return cursor
 

@@ -1,10 +1,13 @@
 import os.path
 import simplejson
 
-
 import db
 
 class BaseLoader(object):
+    """ Default loader class. Custom loaders should inherit this."""
+
+    # TODO: Tidy up the create_ functions.
+
     def __init__(self, source_file):
         self.cursor = db.CursorWrapper()
 
@@ -13,6 +16,7 @@ class BaseLoader(object):
             self.cursor.commit()
 
     def create(self, datatype, source_file, target_file, data, parent=None):
+        """Dispatcher for the various create functions"""
         if isinstance(data, dict):
             self.create_from_dict(datatype, source_file, target_file, data, parent)
         elif isinstance(data, (list, tuple)):
@@ -21,16 +25,21 @@ class BaseLoader(object):
             self.create_reference(datatype, source_file, target_file, parent)
 
     def create_from_dict(self, datatype, source_file, target_file, data, parent=None):
+        """Creates tags for each key in data and then recurses into the value."""
         for tag, data in data.iteritems():
             new_parent = self.create_tag(datatype, tag, parent)
             self.create(datatype, source_file, target_file, data, new_parent)
 
     def create_from_list(self, datatype, source_file, target_file, data, parent=None):
-        for tag in set(data):
+        """Creates a set of tags from a list and then associates target_file with those tags."""
+        # We set() the list here to avoid duplicates. 
+        for tag in set(data): 
             new_parent = self.create_tag(datatype, tag, parent)
             self.create_reference(datatype, source_file, target_file, new_parent)
 
     def create_reference(self, datatype, source_file, target_file, parent=None):
+        """Gets or creates a reference to a physical file."""
+        # TODO: Account for duplicates
         part = os.path.basename(target_file)
         select = self.cursor("""SELECT id FROM stagfs WHERE parent IS ? AND (realfile = ? OR part = ?)""",
                 (parent, target_file, part)).fetchone()
@@ -39,6 +48,7 @@ class BaseLoader(object):
                 (datatype, parent, part, target_file, source_file))
 
     def create_tag(self, datatype, name, parent=None):
+        """gets or creates a tag in the DB (i.e. a virtual folder)"""
         select = self.cursor("""SELECT id FROM stagfs WHERE parent IS ? AND part = ?""", (parent, name)).fetchone()
         if select:
             return select[0]
@@ -54,7 +64,7 @@ class BaseLoader(object):
 
         There is no need to check for nonexistant files as this will be done later by StagFS.
         """
-        pass
+        return []
 
 class StagfileLoader(BaseLoader):
     def get_data(self, filename):
