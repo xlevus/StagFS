@@ -1,4 +1,7 @@
 import sqlite3
+import logging
+
+logger = logging.getLogger('stagfs.db')
 
 DB_FILE = 'stagfs.sqlite'
 
@@ -22,6 +25,7 @@ class CursorWrapper(object):
 
     def __call__(self, *args, **kwargs):
         cursor = self.conn.cursor()
+        logging.debug("SQL: %r %r" % args)
         cursor.execute(*args, **kwargs)
         return cursor
 

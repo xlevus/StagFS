@@ -10,6 +10,7 @@ class BaseLoader(object):
 
         for datatype, filename, data in self.get_data(source_file):
             self.create(datatype, source_file, filename, data)
+            self.cursor.commit()
 
     def create(self, datatype, source_file, target_file, data, parent=None):
         if isinstance(data, dict):
@@ -25,27 +26,25 @@ class BaseLoader(object):
             self.create(datatype, source_file, target_file, data, new_parent)
 
     def create_from_list(self, datatype, source_file, target_file, data, parent=None):
-        for tag in data:
+        for tag in set(data):
             new_parent = self.create_tag(datatype, tag, parent)
             self.create_reference(datatype, source_file, target_file, new_parent)
 
     def create_reference(self, datatype, source_file, target_file, parent=None):
         part = os.path.basename(target_file)
-        select = self.cursor("""SELECT id FROM stagfs WHERE parent = ? AND (realfile = ? OR part = ?)""",
+        select = self.cursor("""SELECT id FROM stagfs WHERE parent IS ? AND (realfile = ? OR part = ?)""",
                 (parent, target_file, part)).fetchone()
         if not select:
             insert = self.cursor("""INSERT INTO stagfs (datatype, parent, part, realfile, source) VALUES (?,?,?,?,?)""",
                 (datatype, parent, part, target_file, source_file))
-            self.cursor.commit()
 
     def create_tag(self, datatype, name, parent=None):
-        select = self.cursor("""SELECT id FROM stagfs WHERE parent = ? AND part = ?""", (parent, name)).fetchone()
+        select = self.cursor("""SELECT id FROM stagfs WHERE parent IS ? AND part = ?""", (parent, name)).fetchone()
         if select:
             return select[0]
         else:
             insert = self.cursor("""INSERT INTO stagfs (datatype, parent, part, realfile, source) VALUES (?, ?, ?, ?, ?)""", 
                 (datatype, parent, name, "", ""))
-            self.cursor.commit()
             return insert.lastrowid
 
     def get_data(self, filename):
