@@ -32,21 +32,17 @@ class StagFuse(fuse.Fuse):
     def __init__(self, *args, **kw):
         fuse.Fuse.__init__(self, *args, **kw)
          
-        self.parser.add_option('--config', dest='config_file', metavar='file')
+        self.parser.add_option('--config', dest='config_file', metavar='file', default=None)
         self.parse(errex=1)
         opts, args = self.cmdline
 
-        if opts.config_file == None:
-            print "Error: Missing --config option. See --help for more info."
-            sys.exit()
-
-        data.load_initial()
+        self.data = data.DataManager(opts.config_file)
+        self.data.load_initial()
 
         logger.debug('Fuse init complete.')
 
     def fsinit(self):
-        self.inotify = data.InotifyWatcher(name='inotify-watcher')
-        self.inotify.start()
+        self.data.start()
 
     def getattr(self, path):
         """

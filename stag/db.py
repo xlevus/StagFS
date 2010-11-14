@@ -21,8 +21,6 @@ import logging
 
 logger = logging.getLogger('stagfs.db')
 
-DB_FILE = 'stagfs.sqlite'
-
 CREATE_TABLE = """
     CREATE TABLE IF NOT EXISTS stagfs ( 
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,8 +41,8 @@ class CursorWrapper(object):
 
     If locking is needed, it will be implemented here.
     """
-    def __init__(self):
-        self.conn = sqlite3.connect(DB_FILE)
+    def __init__(self, db):
+        self.conn = sqlite3.connect(db)
         self.conn.execute(CREATE_TABLE)
         self.conn.commit()
 

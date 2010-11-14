@@ -19,15 +19,12 @@
 import os.path
 import simplejson
 
-import db
-
 class BaseLoader(object):
     """ Default loader class. Custom loaders should inherit this."""
-
     # TODO: Tidy up the create_ functions.
 
-    def __init__(self, source_file):
-        self.cursor = db.CursorWrapper()
+    def __init__(self, cursor, source_file):
+        self.cursor = cursor
 
         for datatype, filename, data in self.get_data(source_file):
             self.create(datatype, source_file, filename, data)

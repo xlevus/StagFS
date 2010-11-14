@@ -22,28 +22,33 @@ import time
 import threading
 import logging
 
-from utils import curry
-import loaders
+import utils
+import conf
+import db
 
 logger = logging.getLogger('stagfs.data')
 
-SOURCE_FOLDERS = ['test_source']
+class DataManager(threading.Thread):
+    def __init__(self, configfile):
+        super(DataManager, self).__init__()
 
-class Watcher(threading.Thread):
-    def run(self):
-        while True:
-            logger.debug("Inotify Tick")
-            time.sleep(10)
-
-def process_folder(loaders, directory, contents):
-    func = curry(os.path.join, directory)
-    for source_file in map(func, contents):
-        for extension, loader in loaders:
-            if source_file.endswith("."+extension):
-                logger.debug("Found %r. Loading with %r" % (source_file, loader))
-                loader(source_file)
-
-def load_initial():
-    for dir in SOURCE_FOLDERS:
-        os.path.walk(dir, process_folder, (('stag', loaders.StagfileLoader),))
+        self.settings = conf.Settings(configfile)
     
+    def run(self):
+        pass
+        #while True:
+        #    time.sleep(10)
+    
+    def load_initial(self):
+        for dir in self.settings.source_folders:
+            os.path.walk(dir, self.process_folder, self.settings.loaders)
+     
+    def process_folder(self, loaders, directory, contents):
+        func = utils.curry(os.path.join, directory)
+        for source_file in map(func, contents):
+            for extension, loader in loaders:
+                if source_file.endswith("."+extension):
+                    logger.debug("Found %r. Loading with %r" % (source_file, loader))
+                    cursor = db.CursorWrapper(self.settings.db_name)
+                    loader(cursor, source_file)
+       
