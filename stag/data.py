@@ -22,33 +22,32 @@ import time
 import threading
 import logging
 
-import utils
-import conf
-import db
+import stag.db
+import stag.utils
 
 logger = logging.getLogger('stagfs.data')
 
 class DataManager(threading.Thread):
-    def __init__(self, configfile):
+    def __init__(self, db_name, source_folders, loaders):
         super(DataManager, self).__init__()
 
-        self.settings = conf.Settings(configfile)
+        self.db_name = db_name
+        self.source_folders = source_folders
+        self.loaders = loaders
     
     def run(self):
         pass
-        #while True:
-        #    time.sleep(10)
     
     def load_initial(self):
-        for dir in self.settings.source_folders:
-            os.path.walk(dir, self.process_folder, self.settings.loaders)
+        for dir in self.source_folders:
+            os.path.walk(dir, self.process_folder, self.loaders)
      
     def process_folder(self, loaders, directory, contents):
-        func = utils.curry(os.path.join, directory)
+        func = stag.utils.curry(os.path.join, directory)
         for source_file in map(func, contents):
             for extension, loader in loaders:
                 if source_file.endswith("."+extension):
                     logger.debug("Found %r. Loading with %r" % (source_file, loader))
-                    cursor = db.CursorWrapper(self.settings.db_name)
+                    cursor = stag.db.CursorWrapper(self.db_name)
                     loader(cursor, source_file)
        

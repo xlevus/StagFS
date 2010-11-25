@@ -26,17 +26,28 @@ fuse.fuse_python_api = (0,2)
 
 logger = logging.getLogger('stagfs.fuse')
 
-import data
+import stag.data
+import stag.loaders
+
+TEMP_CONFIG = {
+    'db_name': 'stagfs.sqlite',
+    'source_folders': ('test_source',),
+    'loaders': (('stag', stag.loaders.StagfileLoader),)
+}
 
 class StagFuse(fuse.Fuse):
     def __init__(self, *args, **kw):
         fuse.Fuse.__init__(self, *args, **kw)
          
-        self.parser.add_option('--config', dest='config_file', metavar='file', default=None)
+        #self.parser.add_option('--config', dest='config_file', metavar='file', default=None)
         self.parse(errex=1)
         opts, args = self.cmdline
 
-        self.data = data.DataManager(opts.config_file)
+        self.data = stag.data.DataManager(
+            db_name = TEMP_CONFIG['db_name'],
+            source_folders = TEMP_CONFIG['source_folders'],
+            loaders = TEMP_CONFIG['loaders'],
+        )
         self.data.load_initial()
 
         logger.debug('Fuse init complete.')
