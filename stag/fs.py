@@ -32,7 +32,8 @@ import stag.views
 import stag.loaders
 
 TEMP_CONFIG = {
-    'db_name': 'stagfs.sqlite',
+    # I think fuse dicks with paths so they need to be absolute.
+    'db_name': os.path.abspath(os.path.join(__file__, '../../stagfs.sqlite')), 
     'source_folders': ('test_source',),
     'loaders': (('stag', stag.loaders.StagfileLoader),)
 }
@@ -76,7 +77,6 @@ class StagFuse(fuse.Fuse):
 
         logger.debug('getattr %r' % path)
 
-        contents = self.view_manager.get(path)
 
         stat_obj = fuse.Stat()
         stat_obj.st_mode = stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
@@ -86,19 +86,24 @@ class StagFuse(fuse.Fuse):
         stat_obj.st_uid = os.getuid()
         stat_obj.st_gid = os.getgid()
         stat_obj.st_size = 0
-
+        
+        contents = self.view_manager.get(path)
+        if contents is None:
+            return -errno.ENOENT
+        
         if isinstance(contents, list):
             stat_obj.st_mode = stat_obj.st_mode | stat.S_IFDIR
 
         return stat_obj
 
-    def getdir(self, path):
+    def readdir(self, path, offset):
         """
         return: [[('file1', 0), ('file2', 0), ... ]]
         """
 
-        logger.debug('getdir', path)
-        return -errno.ENOSYS
+        logger.debug('readdir %r %r' % (path, offset))
+        yield fuse.Direntry('.')
+        yield fuse.Direntry('..')
 
     def mythread(self):
         logger.debug('mythread')

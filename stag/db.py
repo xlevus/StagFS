@@ -42,10 +42,16 @@ class ConnectionWrapper(object):
     If locking is needed, it will be implemented here.
     """
     def __init__(self, db):
-        logger.debug("New connection")
+        self.conn = None
+        logger.debug("New connection to %r" % db)
         self.conn = sqlite3.connect(db)
         self.conn.execute(CREATE_TABLE)
         self.conn.commit()
+
+    def __del__(self):
+        if self.conn:
+            self.conn.close()
+            logger.debug("Lost connection")
 
     def execute(self, *args, **kwargs):
         cursor = self.conn.cursor()

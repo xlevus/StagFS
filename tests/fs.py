@@ -1,4 +1,6 @@
 import stat
+import errno
+
 import unittest
 import fuse
 import stag.fs
@@ -12,3 +14,6 @@ class TestStagFuse(unittest.TestCase):
 
         self.assertTrue(isinstance(resp, fuse.Stat))
         self.assertTrue(resp.st_mode & stat.S_IFDIR)
+       
+        resp = self.fs.getattr('/this_doesnt_exist')
+        self.assertEqual(resp, -errno.ENOENT)
