@@ -26,7 +26,9 @@ fuse.fuse_python_api = (0,2)
 
 logger = logging.getLogger('stagfs.fuse')
 
+import stag.db
 import stag.data
+import stag.views
 import stag.loaders
 
 TEMP_CONFIG = {
@@ -50,6 +52,8 @@ class StagFuse(fuse.Fuse):
         )
         self.data.load_initial()
 
+        self.view_manager = stag.views.ViewManager(TEMP_CONFIG['db_name'])
+
         logger.debug('Fuse init complete.')
 
     def fsinit(self):
@@ -72,10 +76,21 @@ class StagFuse(fuse.Fuse):
 
         logger.debug('getattr %r' % path)
 
-        #depth = getDepth(path) # depth of path, zero-based from root
-        #pathparts = getParts(path) # the actual parts of the path
+        contents = self.view_manager.get(path)
 
-        return -errno.ENOSYS
+        stat_obj = fuse.Stat()
+        stat_obj.st_mode = stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
+        stat_obj.st_ino = 0
+        stat_obj.st_dev = 0
+        stat_obj.st_nlink = 0
+        stat_obj.st_uid = os.getuid()
+        stat_obj.st_gid = os.getgid()
+        stat_obj.st_size = 0
+
+        if isinstance(contents, list):
+            stat_obj.st_mode = stat_obj.st_mode | stat.S_IFDIR
+
+        return stat_obj
 
     def getdir(self, path):
         """

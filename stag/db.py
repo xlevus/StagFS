@@ -33,7 +33,7 @@ CREATE_TABLE = """
 """
 
 
-class CursorWrapper(object):
+class ConnectionWrapper(object):
     """
     Wrapper around sqlite3.connect() and sqlite3.cursor(). Assures
     that each connection talks to the same place, and creates the
@@ -42,11 +42,12 @@ class CursorWrapper(object):
     If locking is needed, it will be implemented here.
     """
     def __init__(self, db):
+        logger.debug("New connection")
         self.conn = sqlite3.connect(db)
         self.conn.execute(CREATE_TABLE)
         self.conn.commit()
 
-    def __call__(self, *args, **kwargs):
+    def execute(self, *args, **kwargs):
         cursor = self.conn.cursor()
         cursor.execute(*args, **kwargs)
         return cursor

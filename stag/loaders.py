@@ -23,12 +23,12 @@ class BaseLoader(object):
     """ Default loader class. Custom loaders should inherit this."""
     # TODO: Tidy up the create_ functions.
 
-    def __init__(self, cursor, source_file):
-        self.cursor = cursor
+    def __init__(self, conn, source_file):
+        self.conn = conn
 
         for datatype, filename, data in self.get_data(source_file):
             self.create(datatype, source_file, filename, data)
-            self.cursor.commit()
+            self.conn.commit()
 
     def create(self, datatype, source_file, target_file, data, parent=None):
         """Dispatcher for the various create functions"""
@@ -56,18 +56,18 @@ class BaseLoader(object):
         """Gets or creates a reference to a physical file."""
         # TODO: Account for duplicates
         part = os.path.basename(target_file)
-        select = self.cursor("""SELECT id FROM stagfs WHERE parent IS ? AND (realfile = ? OR part = ?)""",
+        select = self.conn.execute("""SELECT id FROM stagfs WHERE parent IS ? AND (realfile = ? OR part = ?)""",
                 (parent, target_file, part)).fetchone()
         if not select:
-            insert = self.cursor("""INSERT INTO stagfs (datatype, parent, part, realfile, source) VALUES (?,?,?,?,?)""",
+            insert = self.conn.execute("""INSERT INTO stagfs (datatype, parent, part, realfile, source) VALUES (?,?,?,?,?)""",
                 (datatype, parent, part, target_file, source_file))
 
     def create_tag(self, datatype, name, parent=None):
         """gets or creates a tag in the DB (i.e. a virtual folder)"""
-        select = self.cursor("""SELECT id FROM stagfs WHERE parent IS ? AND part = ?""", (parent, name)).fetchone()
+        select = self.conn.execute("""SELECT id FROM stagfs WHERE parent IS ? AND part = ?""", (parent, name)).fetchone()
         if select:
             return select[0]
-        insert = self.cursor("""INSERT INTO stagfs (datatype, parent, part, realfile, source) VALUES (?, ?, ?, ?, ?)""", 
+        insert = self.conn.execute("""INSERT INTO stagfs (datatype, parent, part, realfile, source) VALUES (?, ?, ?, ?, ?)""", 
             (datatype, parent, name, "", ""))
         return insert.lastrowid
 

@@ -39,15 +39,18 @@ class DataManager(threading.Thread):
         pass
     
     def load_initial(self):
+        conn = stag.db.ConnectionWrapper(self.db_name)
+        logger.debug("Clearing stagfs table")
+        conn.execute("DELETE FROM stagfs WHERE 1")
+
         for dir in self.source_folders:
-            os.path.walk(dir, self.process_folder, self.loaders)
+            os.path.walk(dir, self.process_folder, conn)
      
-    def process_folder(self, loaders, directory, contents):
+    def process_folder(self, conn, directory, contents):
         func = stag.utils.curry(os.path.join, directory)
         for source_file in map(func, contents):
-            for extension, loader in loaders:
+            for extension, loader in self.loaders:
                 if source_file.endswith("."+extension):
                     logger.debug("Found %r. Loading with %r" % (source_file, loader))
-                    cursor = stag.db.CursorWrapper(self.db_name)
-                    loader(cursor, source_file)
+                    loader(conn, source_file)
        
