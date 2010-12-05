@@ -17,3 +17,17 @@ class TestStagFuse(unittest.TestCase):
        
         resp = self.fs.getattr('/this_doesnt_exist')
         self.assertEqual(resp, -errno.ENOENT)
+    
+    def test_readdir(self):
+        for path in ['/']:
+            resp = self.fs.readdir(path, 0)
+            for i, row in enumerate(resp):
+                # First two rows should be . and ..
+                if i == 0:
+                    self.assertEqual(row.name, '.')
+                if i == 1:
+                    self.assertTrue(row.name, '..')
+
+                self.assertTrue(isinstance(row, fuse.Direntry))
+                self.assertTrue(isinstance(row.name, str)) # Directories must be non-unicode
+

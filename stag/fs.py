@@ -20,6 +20,7 @@ import os
 import stat
 import errno
 import logging
+import itertools
 
 import fuse
 fuse.fuse_python_api = (0,2)
@@ -89,21 +90,23 @@ class StagFuse(fuse.Fuse):
         
         contents = self.view_manager.get(path)
         if contents is None:
+            logger.debug("Null result on %r" % path)
             return -errno.ENOENT
         
-        if isinstance(contents, list):
+        if hasattr(contents, '__iter__'):
             stat_obj.st_mode = stat_obj.st_mode | stat.S_IFDIR
 
         return stat_obj
 
     def readdir(self, path, offset):
-        """
-        return: [[('file1', 0), ('file2', 0), ... ]]
-        """
-
-        logger.debug('readdir %r %r' % (path, offset))
-        yield fuse.Direntry('.')
-        yield fuse.Direntry('..')
+        logger.debug('readdir %r %s' % (path, offset))
+        resp = self.view_manager.get(path)
+        
+        for row in itertools.chain([".",".."], resp):
+            try:
+                yield fuse.Direntry(str(row)) # Fuse isn't unicode friendly.
+            except UnicodeEncodeError:
+                logging.warn("Unable to encode '%s'" % row)
 
     def mythread(self):
         logger.debug('mythread')
