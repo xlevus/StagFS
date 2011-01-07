@@ -17,18 +17,17 @@ class ViewManagerTest(unittest.TestCase):
         data.load_initial()
 
     def test_get_root(self):
-        """Check the root path returns a list of datatypes"""
-        view_manager = ViewManager(self.db_name)
+        """Check the root path returns a list of datatypes and registered views."""
+        view_manager = ViewManager(self.db_name, {'UNUSED':View})
         
-        self.assertEqual(list(view_manager.get('/')), list(view_manager.get_root()))
-        resp = view_manager.get_root()
-        self.assertEqual(list(resp), ['movie'])
+        resp = set(view_manager.get_root())
+        self.assertEqual(set(view_manager.get('/')), resp)
+        self.assertEqual(resp, set(['movie','UNUSED']))
 
     def test_custom_view(self):
         """Check that the view manager delegates sub-paths to defined views."""
         class NewView(View):
-            def get(self):
-                pass
+            pass
         view_manager = ViewManager(self.db_name, {'movie':NewView})
 
         NewView.get = Mock(return_value=[])
