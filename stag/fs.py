@@ -88,8 +88,9 @@ class StagFuse(fuse.Fuse):
         stat_obj.st_gid = os.getgid()
         stat_obj.st_size = 0
         
-        contents = self.view_manager.get(path)
-        if contents is None:
+        try:
+            contents = self.view_manager.get(path)
+        except stag.views.DoesNotExist:
             logger.debug("Null result on %r" % path)
             return -errno.ENOENT
         

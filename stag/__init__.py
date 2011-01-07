@@ -1,0 +1,3 @@
+
+class StagException(Exception):
+    pass

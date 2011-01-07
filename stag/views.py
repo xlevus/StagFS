@@ -1,8 +1,12 @@
 import logging
 
+from stag import StagException
 from stag.db import ConnectionWrapper
 
 logger = logging.getLogger('stagfs.views')
+
+class DoesNotExist(StagException):
+    pass
 
 class ViewManager(object):
     """Manages views and handles the root path"""
@@ -17,6 +21,11 @@ class ViewManager(object):
         self.views = {}
         for prefix, klass in views.items():
             self.views[prefix] = klass(prefix, self.db_name)
+
+    def get_datatypes(self):
+        conn = ConnectionWrapper(self.db_name)
+        result = conn.execute("SELECT DISTINCT datatype FROM stagfs WHERE parent IS NULL")
+        return [x[0] for x in result]
     
     def get(self, path):
         if path == '/':
@@ -25,8 +34,13 @@ class ViewManager(object):
         # Extract datatype from the path (the first component) and 
         # forward the new
         parts = path.split('/')
-        datatype = parts[1] 
-        view = self.views.setdefault(datatype, View(datatype, self.db_name))
+        prefix = parts[1] 
+        if self.views.has_key(prefix):
+            view = self.views[prefix]
+        else:
+            if prefix not in self.get_datatypes():
+                raise DoesNotExist("/%s has no associated datatype or view." % prefix)
+            view = self.views.setdefault(prefix, View(prefix, self.db_name))
         return view.get('/'.join(['']+parts[2:]))
 
     def get_root(self):
@@ -35,11 +49,8 @@ class ViewManager(object):
         views and datatypes.
         """
         # TODO: Add mechanism allow /someview/ to consume some_other_datatype
-        conn = ConnectionWrapper(self.db_name)
-        result = conn.execute("SELECT DISTINCT datatype FROM stagfs WHERE parent IS NULL")
         output = set(self.views.keys())
-        for row in result:
-            output.add(row[0])
+        output.update(self.get_datatypes())
         return output
 
 class View(object):
