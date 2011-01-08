@@ -1,12 +1,48 @@
 import logging
 
-from fuse import Directory
 from stag import StagException
 from stag.db import ConnectionWrapper
 
 logger = logging.getLogger('stagfs.views')
 
+class StagFile(object):
+    """
+    Base class for VirtualDirectories, RealLocation and VirtualFiles (NYI).
+    These should provide functions for Fuse to call such as getattr() and open().
+    """
+    pass
+
+class VirtualDirectory(StagFile):
+    """Class representing a directory within StagFS with no real location on disk."""
+    def __init__(self, name):
+        self.name = name
+    
+    def __repr__(self):
+        return "VirtualDirectory(%r)" % self.name
+    
+    def __eq__(self, other):
+        return isinstance(other,VirtualDirectory) and other.name == self.name
+    
+    def __hash__(self):
+        return self.name.__hash__()
+
+class RealLocation(StagFile):
+    """Class representing a file or directory within StagFS that has a real location on disk."""
+    def __init__(self, path, name):
+        self.path = path
+        self.name = name
+    
+    def __repr__(self):
+        return "RealLocation(%r, %r)" % (self.path, self.name)
+     
+    def __eq__(self, other):
+        return isinstance(other, RealLocation) and other.name == self.name and other.path == self.path
+
+    def __hash__(self):
+        return (self.name, self.path).__hash__()
+
 class DoesNotExist(StagException):
+    """Exception for when Fuse requests a path that does not exist."""
     pass
 
 class ViewManager(object):
@@ -69,8 +105,14 @@ class View(object):
             path = path[1:]
 
         if path == '':
-            result = conn.execute("SELECT part FROM stagfs WHERE datatype = ? AND parent IS ?", (self.datatype,parent))
-            return set([row[0] for row in result])
+            result = conn.execute("SELECT part, realfile FROM stagfs WHERE datatype = ? AND parent IS ?", (self.datatype,parent))
+            output = set()
+            for part,realfile in result:
+                if realfile:
+                    output.add(RealLocation(realfile, part))
+                else:
+                    output.add(VirtualDirectory(part))
+            return output
         else:
             parts = path.split('/')
             while parts:
@@ -78,3 +120,4 @@ class View(object):
                 result = conn.execute(*sql).fetchone()
                 logger.debug("GET SQL: %r %r" % sql)
                 return self.get("/".join(parts[1:]), result[0], conn)
+

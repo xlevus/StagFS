@@ -2,7 +2,7 @@ import unittest
 from mock import Mock, patch
 
 from stag.data import DataManager
-from stag.views import ViewManager, View, DoesNotExist
+from stag.views import ViewManager, View, DoesNotExist, VirtualDirectory, RealLocation
 
 from stag.fs import TEMP_CONFIG
 
@@ -63,19 +63,20 @@ class ViewTest(unittest.TestCase):
     def test_root(self):
         self.assertEqual(
             self.view.get('/'),
-            set(['languages','writer','countries','title',
+            set(map(VirtualDirectory, ['languages','writer','countries','title',
                 'imdb_id','director','cast','rating (exact)', 
                 'rating (range)', 'keywords', 'year', 'genre', 
-                'canonical_title'])
+                'canonical_title']))
         )
 
     def test_path(self):
         """Test a walk through the data"""
         self.assertEqual(
             self.view.get('/writer'),
-            set([u'Charles B. Griffith', u'William Wisher Jr', u'James Cameron', 
-                u'Robert Thom', u'Tony Hiles', u'Harlan Ellison', u'Tony Gilroy', 
-                u'Peter Jackson', u'Paul W.S. Anderson', u'Ken Hammon', u'Gale Anne Hurd', u'Ib Melchior'])
+            set(map(VirtualDirectory, [u'Charles B. Griffith', u'William Wisher Jr', u'James Cameron', 
+                u'Robert Thom', u'Tony Hiles', u'Harlan Ellison', u'Tony Gilroy', u'Peter Jackson', 
+                u'Paul W.S. Anderson', u'Ken Hammon', u'Gale Anne Hurd', u'Ib Melchior']))
         )
 
-        self.assertEqual(self.view.get('/writer/Tony Hiles'),set(["Bad Taste (1987)"]))
+        self.assertEqual(self.view.get('/writer/Tony Hiles'),set([RealLocation("/home/xin/Projects/StagFS/test_source/Bad Taste (1987)", "Bad Taste (1987)")]))
+
