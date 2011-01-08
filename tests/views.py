@@ -27,7 +27,7 @@ class ViewManagerTest(unittest.TestCase):
         
         resp = set(view_manager.get_root())
         self.assertEqual(set(view_manager.get('/')), resp)
-        self.assertEqual(resp, set(['movie','UNUSED']))
+        self.assertEqual(resp, set([VirtualDirectory('movie'),VirtualDirectory('UNUSED')]))
 
     def test_custom_view(self):
         """Check that the view manager delegates sub-paths to defined views."""

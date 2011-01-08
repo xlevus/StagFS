@@ -86,9 +86,8 @@ class ViewManager(object):
         views and datatypes.
         """
         # TODO: Add mechanism allow /someview/ to consume some_other_datatype
-        output = set(self.views.keys())
-        output.update(self.get_datatypes())
-        return output
+        
+        return set(map(VirtualDirectory, self.views.keys() + self.get_datatypes()))
 
 class View(object):
     def __init__(self, datatype, db_name):
@@ -105,6 +104,8 @@ class View(object):
             path = path[1:]
 
         if path == '':
+            # We've reached the end of the path so fetch the contents
+            # as StagFile objects.
             result = conn.execute("SELECT part, realfile FROM stagfs WHERE datatype = ? AND parent IS ?", (self.datatype,parent))
             output = set()
             for part,realfile in result:
@@ -114,6 +115,8 @@ class View(object):
                     output.add(VirtualDirectory(part))
             return output
         else:
+            # Recurse through the path.
+            # TODO: Optimise. Lots.
             parts = path.split('/')
             while parts:
                 sql = ("SELECT id FROM stagfs WHERE datatype = ? AND parent IS ? AND part = ?", (self.datatype, parent, parts[0]))
