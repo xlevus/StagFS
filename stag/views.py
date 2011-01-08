@@ -1,5 +1,6 @@
 import logging
 
+from fuse import Directory
 from stag import StagException
 from stag.db import ConnectionWrapper
 
@@ -56,7 +57,24 @@ class ViewManager(object):
 class View(object):
     def __init__(self, datatype, db_name):
         self.db_name = db_name
-        self.datattype = datatype
+        self.datatype = datatype
 
-    def get(self, path, parent=None):
-        pass
+    def get(self, path, parent=None, conn=None):
+        logger.debug("GET: %r, %r" % (path, parent))
+
+        if conn is None:
+            conn = ConnectionWrapper(self.db_name)
+
+        if path and path[0] == '/': # Clean out opening / to make recursion easier
+            path = path[1:]
+
+        if path == '':
+            result = conn.execute("SELECT part FROM stagfs WHERE datatype = ? AND parent IS ?", (self.datatype,parent))
+            return set([row[0] for row in result])
+        else:
+            parts = path.split('/')
+            while parts:
+                sql = ("SELECT id FROM stagfs WHERE datatype = ? AND parent IS ? AND part = ?", (self.datatype, parent, parts[0]))
+                result = conn.execute(*sql).fetchone()
+                logger.debug("GET SQL: %r %r" % sql)
+                return self.get("/".join(parts[1:]), result[0], conn)

@@ -54,6 +54,7 @@ class ConnectionWrapper(object):
             logger.debug("Lost connection")
 
     def execute(self, *args, **kwargs):
+        #logger.debug("SQL: %s" % " ".join(map(str,args)))
         cursor = self.conn.cursor()
         cursor.execute(*args, **kwargs)
         return cursor
