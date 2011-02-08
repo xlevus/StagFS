@@ -1,12 +1,19 @@
+import os.path
 import unittest
 from mock import Mock, patch
 
+from stag import filetypes
 from stag.data import DataManager
-from stag.views import ViewManager, View, DoesNotExist, VirtualDirectory, RealLocation
+from stag.db import ConnectionWrapper
+from stag.views import Dispatcher, View, DoesNotExist
 
 from stag.fs import TEMP_CONFIG
 
-class ViewManagerTest(unittest.TestCase):
+def path_relative_to_source(path):
+    # This might be a bit wonky depends on where you call it from
+    return os.path.join(os.path.abspath(TEMP_CONFIG['source_folders'][0]), path)
+
+class DispatcherTest(unittest.TestCase):
     def setUp(self):
         self.db_name = TEMP_CONFIG['db_name']
         data = DataManager(
@@ -15,38 +22,48 @@ class ViewManagerTest(unittest.TestCase):
             loaders = TEMP_CONFIG['loaders'],
         )
         data.load_initial()
-
-    def test_get_datatypes(self):
-        """Make sure ViewManager.get_datatypes returns the correct values"""
-        view_manager = ViewManager(self.db_name)
-        self.assertEqual(['movie'], view_manager.get_datatypes())        
-
-    def test_get_root(self):
-        """Check the root path returns a list of datatypes and registered views."""
-        view_manager = ViewManager(self.db_name, {'UNUSED':View})
-        
-        resp = set(view_manager.get_root())
-        self.assertEqual(set(view_manager.get('/')), resp)
-        self.assertEqual(resp, set([VirtualDirectory('movie'),VirtualDirectory('UNUSED')]))
-
-    def test_custom_view(self):
-        """Check that the view manager delegates sub-paths to defined views."""
-        class NewView(View):
-            pass
-        view_manager = ViewManager(self.db_name, {'movie':NewView, 'other':View})
-
-        # Check 'movie' view gets called with the right path
-        NewView.get = Mock(return_value=[])
-        view_manager.get('/movie/writer')
-        NewView.get.assert_called_with('/writer')
+        self.dispatcher = Dispatcher(self.db_name)
     
-        # Check that call to another view doesn't get misplaced
-        NewView.get = Mock(return_value=[]) # Reset NewView.get.called
-        view_manager.get('/other')
-        self.assertFalse(NewView.get.called)
+    def test_root(self):
+        """
+        Check that the root path returns a VirtualDirectory object containing
+        all of the datatypes.
+        """
+        root = self.dispatcher.get('/')
+        #self.assertIsInstance(root, filetypes.VirtualDirectory)
+        self.assertEqual(root.__class__, filetypes.VirtualDirectory)
+        self.assertEqual(root._contents, ['movie'])
+    
+    def test_get_view(self):
+        """
+        Check that get_view() returns a View object, and make
+        sure that subsequent calls return the same object.
+        """
+        dt = 'movie'
+        result = self.dispatcher.get_view(dt)
+        self.assertEqual(result.__class__, View)
+        self.assertEqual(result.datatype, dt)
+        self.assertEqual(result, self.dispatcher.get_view(dt))
 
-        # Check that a call to a non-registered view or nonexistant datatype raises
-        self.assertRaises(DoesNotExist, lambda: view_manager.get('/nonexistant/test'))
+    def test_call_view(self):
+        """
+        Check that deeper paths calls the view with the right arguments
+        """
+        movie_view = View('movie')
+        other_view = View('other')
+        movie_view.get = Mock(return_value=filetypes.VirtualDirectory(contents=[]))
+        other_view.get = Mock(return_value=filetypes.VirtualDirectory(contents=[]))
+        self.dispatcher.views = {'movie':movie_view, 'other':other_view}
+
+        self.dispatcher.get('/movie')
+        movie_view.get.assert_called_with('/', self.db_name)
+
+        self.dispatcher.get('/other/test/path')
+        other_view.get.assert_called_with('/test/path', self.db_name)
+        
+        self.assertRaises(DoesNotExist, 
+                lambda: self.dispatcher.get('/nonexistant/view'))
+
 
 class ViewTest(unittest.TestCase):
     def setUp(self):
@@ -57,26 +74,34 @@ class ViewTest(unittest.TestCase):
             loaders = TEMP_CONFIG['loaders'],
         )
         data.load_initial()
-    
-        self.view = View('movie', self.db_name)
+        self.view = View(datatype='movie')
 
     def test_root(self):
-        self.assertEqual(
-            self.view.get('/'),
-            set(map(VirtualDirectory, ['languages','writer','countries','title',
-                'imdb_id','director','cast','rating (exact)', 
-                'rating (range)', 'keywords', 'year', 'genre', 
-                'canonical_title']))
-        )
+        result = self.view.get('/', self.db_name)
+        self.assertEqual(result.__class__, filetypes.VirtualDirectory)
+        self.assertEqual(result._contents, 
+                [u'languages', u'writer', u'countries', u'title', 
+                    u'imdb_id', u'director', u'cast', u'rating (exact)', 
+                    u'rating (range)', u'keywords', u'year', u'genre', u'canonical_title'])
 
-    def test_path(self):
-        """Test a walk through the data"""
-        self.assertEqual(
-            self.view.get('/writer'),
-            set(map(VirtualDirectory, [u'Charles B. Griffith', u'William Wisher Jr', u'James Cameron', 
-                u'Robert Thom', u'Tony Hiles', u'Harlan Ellison', u'Tony Gilroy', u'Peter Jackson', 
-                u'Paul W.S. Anderson', u'Ken Hammon', u'Gale Anne Hurd', u'Ib Melchior']))
-        )
+    def test_valid_path(self):
+        result = self.view.get('/languages', self.db_name)
+        self.assertEqual(result.__class__, filetypes.VirtualDirectory)
+        self.assertEqual(result._contents, [u'English', u'Spanish'])
 
-        self.assertEqual(self.view.get('/writer/Tony Hiles'),set([RealLocation("/home/xin/Projects/StagFS/test_source/Bad Taste (1987)", "Bad Taste (1987)")]))
+    def test_valid_path2(self):
+        result = self.view.get('/languages/English', self.db_name)
+        self.assertEqual(result.__class__, filetypes.VirtualDirectory)
+        self.assertEqual(result._contents, [u'Bad Taste (1987)', u'Death Race (2008)', 
+            u'The Terminator (1984)', u'Michael Clayton (2007)'])
+
+    def test_realfile(self):
+        """Check that a path containing a real file returns a RealFile object"""
+        result = self.view.get('/languages/English/Bad Taste (1987)', self.db_name)
+        self.assertEqual(result.__class__, filetypes.RealFile)
+        self.assertEqual(result._target, path_relative_to_source("Bad Taste (1987)"))
+
+    def test_missing_path(self):
+        self.assertRaises(DoesNotExist, 
+                lambda: self.view.get('/not/existant/path', self.db_name))
 

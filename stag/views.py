@@ -1,126 +1,68 @@
+import os
 import logging
 
+from stag import filetypes
 from stag import StagException
 from stag.db import ConnectionWrapper
 
 logger = logging.getLogger('stagfs.views')
 
-class StagFile(object):
-    """
-    Base class for VirtualDirectories, RealLocation and VirtualFiles (NYI).
-    These should provide functions for Fuse to call such as getattr() and open().
-    """
-    pass
-
-class VirtualDirectory(StagFile):
-    """Class representing a directory within StagFS with no real location on disk."""
-    def __init__(self, name):
-        self.name = name
-    
-    def __repr__(self):
-        return "VirtualDirectory(%r)" % self.name
-    
-    def __eq__(self, other):
-        return isinstance(other,VirtualDirectory) and other.name == self.name
-    
-    def __hash__(self):
-        return self.name.__hash__()
-
-class RealLocation(StagFile):
-    """Class representing a file or directory within StagFS that has a real location on disk."""
-    def __init__(self, path, name):
-        self.path = path
-        self.name = name
-    
-    def __repr__(self):
-        return "RealLocation(%r, %r)" % (self.path, self.name)
-     
-    def __eq__(self, other):
-        return isinstance(other, RealLocation) and other.name == self.name and other.path == self.path
-
-    def __hash__(self):
-        return (self.name, self.path).__hash__()
-
 class DoesNotExist(StagException):
     """Exception for when Fuse requests a path that does not exist."""
     pass
 
-class ViewManager(object):
-    """Manages views and handles the root path"""
-
-    # Views are stored in a dict with the key being the first component
-    # of the path. i.e. `/myview/abc/def/` is equivalent to
-    # `self.views['myview'].get('/abc/def/')`.
-
-    def __init__(self, db_name, views={}):
-        self.db_name = db_name 
-
+class Dispatcher(object):
+    def __init__(self, db_name):
+        self.db_name = db_name
         self.views = {}
-        for prefix, klass in views.items():
-            self.views[prefix] = klass(prefix, self.db_name)
 
-    def get_datatypes(self):
         conn = ConnectionWrapper(self.db_name)
         result = conn.execute("SELECT DISTINCT datatype FROM stagfs WHERE parent IS NULL")
-        return [x[0] for x in result]
-    
+        for row in result:
+            self.views[row[0]] = View(row[0])
+
     def get(self, path):
         if path == '/':
             return self.get_root()
-        
-        # Extract datatype from the path (the first component) and 
-        # forward the new
-        parts = path.split('/')
-        prefix = parts[1] 
-        if self.views.has_key(prefix):
-            view = self.views[prefix]
-        else:
-            if prefix not in self.get_datatypes():
-                raise DoesNotExist("/%s has no associated datatype or view." % prefix)
-            view = self.views.setdefault(prefix, View(prefix, self.db_name))
-        return view.get('/'.join(['']+parts[2:]))
+
+        split = path.split(os.sep)
+        datatype = split[1]
+        return self.get_view(split[1]).get(os.sep + os.sep.join(split[2:]), self.db_name)
 
     def get_root(self):
-        """
-        Gets the root folder of the FS. This should be a combination of registered
-        views and datatypes.
-        """
-        # TODO: Add mechanism allow /someview/ to consume some_other_datatype
+        return filetypes.VirtualDirectory(contents=self.views.keys())
         
-        return set(map(VirtualDirectory, self.views.keys() + self.get_datatypes()))
+    def get_view(self, datatype):
+        try:
+            return self.views[datatype]
+        except KeyError:
+            raise DoesNotExist("No view associated with datatype %r" % datatype)
 
 class View(object):
-    def __init__(self, datatype, db_name):
-        self.db_name = db_name
+    def __init__(self, datatype):
         self.datatype = datatype
 
-    def get(self, path, parent=None, conn=None):
-        logger.debug("GET: %r, %r" % (path, parent))
+    def get(self, path, db_name):
+        conn = ConnectionWrapper(db_name)
+        path = path.split(os.sep)[1:] # Root: ''; /Path/Somewhere: '','Path','Somewhere'
+        realfile = None
+        parent_id = None
 
-        if conn is None:
-            conn = ConnectionWrapper(self.db_name)
+        while len(path) > 0 and path != ['']:
+            try:
+                parent_id, realfile = conn.execute(
+                        "SELECT id,realfile FROM stagfs WHERE datatype = ? AND parent IS ? AND part = ?",
+                        (self.datatype, parent_id, path[0])
+                ).fetchone()
+                path = path[1:]
+            except TypeError:
+                # No helpful data here to output meaningful error message
+                raise DoesNotExist("Could not find path") 
 
-        if path and path[0] == '/': # Clean out opening / to make recursion easier
-            path = path[1:]
-
-        if path == '':
-            # We've reached the end of the path so fetch the contents
-            # as StagFile objects.
-            result = conn.execute("SELECT part, realfile FROM stagfs WHERE datatype = ? AND parent IS ?", (self.datatype,parent))
-            output = set()
-            for part,realfile in result:
-                if realfile:
-                    output.add(RealLocation(realfile, part))
-                else:
-                    output.add(VirtualDirectory(part))
-            return output
+        if not realfile:
+            result = conn.execute("SELECT part FROM stagfs WHERE datatype = ? AND parent IS ?", 
+                    (self.datatype,parent_id))
+            return filetypes.VirtualDirectory(contents=[x[0] for x in result])
         else:
-            # Recurse through the path.
-            # TODO: Optimise. Lots.
-            parts = path.split('/')
-            while parts:
-                sql = ("SELECT id FROM stagfs WHERE datatype = ? AND parent IS ? AND part = ?", (self.datatype, parent, parts[0]))
-                result = conn.execute(*sql).fetchone()
-                logger.debug("GET SQL: %r %r" % sql)
-                return self.get("/".join(parts[1:]), result[0], conn)
+            return filetypes.RealFile(target=realfile)
 
