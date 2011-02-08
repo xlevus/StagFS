@@ -54,7 +54,7 @@ class StagFuse(fuse.Fuse):
         )
         self.data.load_initial()
 
-        self.view_manager = stag.views.ViewManager(TEMP_CONFIG['db_name'])
+        self.view_manager = stag.views.Dispatcher(TEMP_CONFIG['db_name'])
 
         logger.debug('Fuse init complete.')
 
@@ -103,7 +103,7 @@ class StagFuse(fuse.Fuse):
         logger.debug('readdir %r %s' % (path, offset))
         resp = self.view_manager.get(path)
         
-        for row in itertools.chain([".",".."], resp):
+        for row in itertools.chain([".",".."], resp.readdir()):
             try:
                 yield fuse.Direntry(str(row)) # Fuse isn't unicode friendly.
             except UnicodeEncodeError:
