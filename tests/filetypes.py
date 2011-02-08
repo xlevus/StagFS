@@ -66,7 +66,7 @@ class RealFileTestCase1(unittest.TestCase):
         self.assertEqual(result.st_ctime, file_stat[9])
 
     def test_readdir(self):
-        self.assertEqual(self.rf.readdir(), errno.ENOTDIR)
+        self.assertEqual(self.rf.readdir(), -errno.ENOTDIR)
 
 class RealFileTestCase2(RealFileTestCase1):
     """RealFile test case for when the target is a directory"""

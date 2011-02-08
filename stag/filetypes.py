@@ -78,5 +78,5 @@ class RealFile(StagFile):
 
     def readdir(self):
         if not os.path.isdir(self._target):
-            return errno.ENOTDIR
+            return -errno.ENOTDIR
         return os.listdir(self._target)

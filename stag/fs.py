@@ -62,42 +62,12 @@ class StagFuse(fuse.Fuse):
         self.data.start()
 
     def getattr(self, path):
-        """
-        - st_mode (protection bits)
-        - st_ino (inode number)
-        - st_dev (device)
-        - st_nlink (number of hard links)
-        - st_uid (user ID of owner)
-        - st_gid (group ID of owner)
-        - st_size (size of file, in bytes)
-        - st_atime (time of most recent access)
-        - st_mtime (time of most recent content modification)
-        - st_ctime (platform dependent; time of most recent metadata change on Unix,
-                    or the time of creation on Windows).
-        """
-
-        logger.debug('getattr %r' % path)
-
-
-        stat_obj = fuse.Stat()
-        stat_obj.st_mode = stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
-        stat_obj.st_ino = 0
-        stat_obj.st_dev = 0
-        stat_obj.st_nlink = 0
-        stat_obj.st_uid = os.getuid()
-        stat_obj.st_gid = os.getgid()
-        stat_obj.st_size = 0
-        
         try:
             contents = self.view_manager.get(path)
+            return contents.getattr()
         except stag.views.DoesNotExist:
             logger.debug("Null result on %r" % path)
             return -errno.ENOENT
-        
-        if hasattr(contents, '__iter__'):
-            stat_obj.st_mode = stat_obj.st_mode | stat.S_IFDIR
-
-        return stat_obj
 
     def readdir(self, path, offset):
         logger.debug('readdir %r %s' % (path, offset))
