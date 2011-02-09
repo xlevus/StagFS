@@ -22,6 +22,7 @@ import errno
 import fcntl
 import logging
 import itertools
+import functools
 
 from threading import Lock
 
@@ -34,6 +35,7 @@ import stag.db
 import stag.data
 import stag.views
 import stag.loaders
+import stag.filetypes
 
 TEMP_CONFIG = {
     # I think fuse dicks with paths so they need to be absolute.
@@ -50,6 +52,8 @@ def flag2mode(flags):
     return m
 
 def lock(func):
+    """Monitor pattern lock decorator."""
+    @functools.wraps(func)
     def inner(self, *args, **kwargs):
         if not hasattr(self, '_lock'):
             self._lock = Lock()
@@ -64,7 +68,7 @@ class StagFile(object):
         self.path = path
         self.file = os.fdopen(os.open("." + path, flags, *mode), flag2mode(flags))
         self.fd = self.file.fileno()
-        logger.debug("opened %r" % path)
+        logger.debug("opened %r. Flags: %r Mode: %r" % (path, flags, mode))
     
     @lock
     def read(self, length, offset):
@@ -83,7 +87,7 @@ class StagFile(object):
     def release(self, flags):
         logger.debug("release on %r." % self.path)
         self.file.close()
-
+    
     def _fflush(self):
         if 'w' in self.file.mode or 'a' in self.file.mode:
             self.file.flush()
@@ -183,6 +187,10 @@ class StagFuse(fuse.Fuse):
 
     def fsinit(self):
         self.data.start()
+    
+    def mythread(self):
+        logger.debug('mythread')
+        return -errno.ENOSYS
 
     def getattr(self, path):
         try:
@@ -202,59 +210,19 @@ class StagFuse(fuse.Fuse):
             except UnicodeEncodeError:
                 logging.warn("Unable to encode '%s'" % row)
 
-    def mythread(self):
-        logger.debug('mythread')
-        return -errno.ENOSYS
-
-    def chmod(self, path, mode):
-        logger.debug('chmod %r %r' % (path, oct(mode)))
-        return -errno.ENOSYS
-
-    def chown(self, path, uid, gid):
-        logger.debug('chown %r %r %r' % (path, uid, gid))
-        return -errno.ENOSYS
-
-    def link(self, targetPath, linkPath):
-        logger.debug('link %r %r' % ( targetPath, linkPath))
-        return -errno.ENOSYS
-
-    def mkdir(self, path, mode):
-        logger.debug('mkdir %r %r' % (path, oct(mode)))
-        return -errno.ENOSYS
-
-    def mknod(self, path, mode, dev):
-        logger.debug('mknod %r %r %r' % (path, oct(mode), dev))
-        return -errno.ENOSYS
-
-    def readlink(self, path):
-        logger.debug('readlink %r' % path)
-        return -errno.ENOSYS
-
-    def rename(self, oldPath, newPath):
-        logger.debug('rename %r %r' % (oldPath, newPath))
-        return -errno.ENOSYS
-
-    def rmdir(self, path):
-        logger.debug('rmdir %r' % path)
-        return -errno.ENOSYS
-
-    def statfs(self):
-        logger.debug('statfs')
-        return -errno.ENOSYS
-
-    def symlink(self, targetPath, linkPath):
-        logger.debug('symlink %r %r' % (targetPath, linkPath))
-        return -errno.ENOSYS
-
-    def truncate(self, path, size):
-        logger.debug('truncate %r %r' % (path, size))
-        return -errno.ENOSYS
-
-    def unlink(self, path):
-        logger.debug('unlink %r' % path)
-        return -errno.ENOSYS
-
-    def utime(self, path, times):
-        logger.debug('utime %r %r' % (path, times))
-        return -errno.ENOSYS
+# Lazily create a bunch of attributes
+for func_name in ['chmod','chown','link','mkdir','mknod','readlink','rename','rmdir',
+        'statfs','symlink','truncate','unlink','utime']:
+    def func(self, path, *args, **kwargs):
+        logger.debug("%s on %r.   Args:%r   Kwargs:%r" % (func_name, path, args, kwargs))
+        try:
+            result = self.view_manager.get(path)
+            getattr(result, func_name)(*args, **kwargs)
+        except AttributeError:
+            return -errno.ENOSYS
+        except DoesNotExist:
+            return -errno.ENOENT
+    func.__name__ = func_name
+    func.__doc__ = "StagFS.%s - fuse function. See implementations in stag.filetypes" % func_name 
+    setattr(StagFuse, func_name, func)
 

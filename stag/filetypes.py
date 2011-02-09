@@ -1,8 +1,11 @@
 import os
 import stat
 import errno
+import logging
 
 from fuse import Stat
+
+logger = logging.getLogger('stagfs.filetypes')
 
 class StagFile(object):
     """
@@ -57,6 +60,10 @@ class RealFile(StagFile):
     A file in StagFS that points to a real file on disk.
     """
     def __init__(self, target):
+        logger.debug("New RealFile -> %r" % target)
+        if not os.path.exists(target):
+            from stag.views import DoesNotExist
+            #raise DoesNotExist
         self._target = target
     
     def getattr(self):

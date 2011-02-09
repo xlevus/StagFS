@@ -5,6 +5,7 @@ import unittest
 
 from fuse import Stat
 from stag.filetypes import *
+from stag.views import DoesNotExist
 
 class StagFileTestCase(unittest.TestCase):
     def setUp(self):
@@ -44,6 +45,11 @@ class RealFileTestCase1(unittest.TestCase):
     def setUp(self):
         self.file = __file__
         self.rf = RealFile(self.file)
+
+    def test_missing(self):
+        filename = os.path.split(__file__)[0]
+        self.assertRaises(DoesNotExist,
+                lambda: RealFile(os.path.join(filename, 'doesnotexist')))
 
     def test_getattr(self):
         """
