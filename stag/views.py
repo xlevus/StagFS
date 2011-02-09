@@ -48,7 +48,7 @@ class View(object):
         realfile = None
         parent_id = None
 
-        while len(path) > 0 and path != ['']:
+        while len(path) > 0 and path != [''] and not realfile:
             try:
                 parent_id, realfile = conn.execute(
                         "SELECT id,realfile FROM stagfs WHERE datatype = ? AND parent IS ? AND part = ?",
@@ -64,5 +64,6 @@ class View(object):
                     (self.datatype,parent_id))
             return filetypes.VirtualDirectory(contents=[x[0] for x in result])
         else:
-            return filetypes.RealFile(target=realfile)
+            # Pass any traling path onto the RealFile object to deal with
+            return filetypes.RealFile(target=os.path.join(realfile, *path))
 

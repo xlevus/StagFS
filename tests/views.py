@@ -101,6 +101,11 @@ class ViewTest(unittest.TestCase):
         self.assertEqual(result.__class__, filetypes.RealFile)
         self.assertEqual(result._target, path_relative_to_source("Bad Taste (1987)"))
 
+    def test_realfile2(self):
+        result = self.view.get('/languages/English/Bad Taste (1987)/movie.stag', self.db_name)
+        self.assertEqual(result.__class__, filetypes.RealFile)
+        self.assertEqual(result._target, os.path.join(path_relative_to_source("Bad Taste (1987)"), 'movie.stag'))
+
     def test_missing_path(self):
         self.assertRaises(DoesNotExist, 
                 lambda: self.view.get('/not/existant/path', self.db_name))

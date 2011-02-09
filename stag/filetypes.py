@@ -80,3 +80,4 @@ class RealFile(StagFile):
         if not os.path.isdir(self._target):
             return -errno.ENOTDIR
         return os.listdir(self._target)
+
