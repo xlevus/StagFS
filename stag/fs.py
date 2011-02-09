@@ -192,14 +192,6 @@ class StagFuse(fuse.Fuse):
         logger.debug('mythread')
         return -errno.ENOSYS
 
-    def getattr(self, path):
-        try:
-            contents = self.view_manager.get(path)
-            return contents.getattr()
-        except stag.views.DoesNotExist:
-            logger.debug("Path %r not found." % path)
-            return -errno.ENOENT
-
     def readdir(self, path, offset):
         logger.debug('readdir %r %s' % (path, offset))
         resp = self.view_manager.get(path)
@@ -212,15 +204,16 @@ class StagFuse(fuse.Fuse):
 
 # Lazily create a bunch of attributes
 for func_name in ['chmod','chown','link','mkdir','mknod','readlink','rename','rmdir',
-        'statfs','symlink','truncate','unlink','utime']:
+        'statfs','symlink','truncate','unlink','utime','getattr']:
     def func(self, path, *args, **kwargs):
         logger.debug("%s on %r.   Args:%r   Kwargs:%r" % (func_name, path, args, kwargs))
         try:
             result = self.view_manager.get(path)
-            getattr(result, func_name)(*args, **kwargs)
+            return getattr(result, func_name)(*args, **kwargs)
         except AttributeError:
             return -errno.ENOSYS
-        except DoesNotExist:
+        except stag.views.DoesNotExist:
+            logger.debug("%r does not exist" % path)
             return -errno.ENOENT
     func.__name__ = func_name
     func.__doc__ = "StagFS.%s - fuse function. See implementations in stag.filetypes" % func_name 
