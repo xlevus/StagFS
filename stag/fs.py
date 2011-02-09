@@ -23,6 +23,8 @@ import fcntl
 import logging
 import itertools
 
+from threading import Lock
+
 import fuse
 fuse.fuse_python_api = (0,2)
 
@@ -47,46 +49,73 @@ def flag2mode(flags):
         m = m.replace('w', 'a', 1)
     return m
 
+def lock(func):
+    def inner(self, *args, **kwargs):
+        if not hasattr(self, '_lock'):
+            self._lock = Lock()
+        self._lock.acquire()
+        func(self, *args, **kwargs)
+        self._lock.release()
+    return inner
+
 class StagFile(object):
     def __init__(self, fuse_fs, path, flags, *mode):
         path = fuse_fs.view_manager.get(path)._target
+        self.path = path
         self.file = os.fdopen(os.open("." + path, flags, *mode), flag2mode(flags))
         self.fd = self.file.fileno()
+        logger.debug("opened %r" % path)
     
+    @lock
     def read(self, length, offset):
+        logger.debug("read on %r. Length: %r Offset: %r" % (self.path, length, offset))
         self.file.seek(offset)
         return self.file.read(length)
 
+    @lock
     def write(self, buf, offset):
+        logger.debug("write on %r. Offset: %r" % (self.path, offset))
         self.file.seek(offset)
         self.file.write(buf)
         return len(buf)
 
+    @lock
     def release(self, flags):
+        logger.debug("release on %r." % self.path)
         self.file.close()
 
     def _fflush(self):
         if 'w' in self.file.mode or 'a' in self.file.mode:
             self.file.flush()
-
+    
+    @lock
     def fsync(self, isfsyncfile):
+        logger.debug("fsync on %r. isfsyncfile: %r" % (self.path, isfsyncfile))
         self._fflush()
         if isfsyncfile and hasattr(os, 'fdatasync'):
             os.fdatasync(self.fd)
         else:
             os.fsync(self.fd)
 
+    @lock
     def flush(self):
+        logger.debug("flush on %r." % self.path)
         self._fflush()
         os.close(os.dup(self.fd))
 
+    @lock
     def fgetattr(self):
+        logger.debug("fgetattr on %r." % self.path)
         return os.fstat(self.fd)
 
-    def ftruncate(self, len):
-        self.file.truncate(len)
+    @lock
+    def ftruncate(self, length):
+        logger.debug("ftruncate on %r. Length: %r" % (self.path, length))
+        self.file.truncate(length)
 
+    @lock
     def lock(self, cmd, owner, **kw):
+        logger.debug("lock on %r." % self.path)
         """
         The code here is much rather just a demonstration of the locking
         API than something which actually was seen to be useful.
@@ -160,7 +189,7 @@ class StagFuse(fuse.Fuse):
             contents = self.view_manager.get(path)
             return contents.getattr()
         except stag.views.DoesNotExist:
-            logger.debug("Null result on %r" % path)
+            logger.debug("Path %r not found." % path)
             return -errno.ENOENT
 
     def readdir(self, path, offset):
