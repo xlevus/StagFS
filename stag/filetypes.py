@@ -63,10 +63,11 @@ class RealFile(StagFile):
         logger.debug("New RealFile -> %r" % target)
         if not os.path.exists(target):
             from stag.views import DoesNotExist
-            #raise DoesNotExist
+            raise DoesNotExist(target)
         self._target = target
     
-    def getattr(self):
+    def getattr(self, *args):
+        logger.debug("GETATTR: args %r" % (args,))
         file_stat = os.stat(self._target)
         stat_obj = Stat()
 

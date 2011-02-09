@@ -9,7 +9,9 @@ logger = logging.getLogger('stagfs.views')
 
 class DoesNotExist(StagException):
     """Exception for when Fuse requests a path that does not exist."""
-    pass
+    def __init__(self, failed_path):
+        self.failed_path = failed_path
+        self.args = ("Path %r does not exist" % failed_path,)
 
 class Dispatcher(object):
     def __init__(self, db_name):

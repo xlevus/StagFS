@@ -43,7 +43,7 @@ class ConnectionWrapper(object):
     """
     def __init__(self, db):
         self.conn = None
-        logger.debug("New connection to %r" % db)
+        #logger.debug("New connection to %r" % db)
         self.conn = sqlite3.connect(db)
         self.conn.execute(CREATE_TABLE)
         self.conn.commit()
@@ -51,7 +51,7 @@ class ConnectionWrapper(object):
     def __del__(self):
         if self.conn:
             self.conn.close()
-            logger.debug("Lost connection")
+            #logger.debug("Lost connection")
 
     def execute(self, *args, **kwargs):
         #logger.debug("SQL: %s" % " ".join(map(str,args)))
@@ -61,3 +61,4 @@ class ConnectionWrapper(object):
 
     def commit(self):
         return self.conn.commit()
+
