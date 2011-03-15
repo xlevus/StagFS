@@ -112,7 +112,8 @@ class StagFuse(fuse.Fuse):
             try:
                 result = self.view_manager.get(path)
                 return getattr(result, name)(*args, **kwargs)
-            except AttributeError:
+            except AttributeError, e:
+                logger.error("StagFS error: %s" % e)
                 return -errno.ENOSYS
             except stag.views.DoesNotExist:
                 logger.debug("%r does not exist" % path)

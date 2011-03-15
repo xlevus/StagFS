@@ -89,3 +89,26 @@ class RealFile(StagFile):
             return -errno.ENOTDIR
         return os.listdir(self._target)
 
+class SymlinkRealFile(RealFile):
+    """
+    Represents real files as symlinks.
+    Stopgap measure, but it's a lot easier to deal with code wise.
+    """
+
+    def getattr(self, *args):
+        logger.debug("GETATTR: args %r" % (args,))
+        stat_obj = Stat()
+        stat_obj.st_mode = stat.S_IFLNK | stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
+        stat_obj.st_ino = 0
+        stat_obj.st_dev = 0
+        stat_obj.st_nlink = 0
+        stat_obj.st_uid = os.getuid()
+        stat_obj.st_gid = os.getgid()
+        stat_obj.st_size = 0
+
+        return stat_obj
+
+    def readlink(self):
+        logger.debug("READLINLK %s" % self._target)
+        return str(self._target)
+

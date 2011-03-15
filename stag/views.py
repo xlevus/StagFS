@@ -68,5 +68,5 @@ class View(object):
             return filetypes.VirtualDirectory(contents=[x[0] for x in result])
         else:
             # Pass any traling path onto the RealFile object to deal with
-            return filetypes.RealFile(target=os.path.join(realfile, *path))
+            return filetypes.SymlinkRealFile(target=os.path.join(realfile, *path))
 

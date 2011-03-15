@@ -84,3 +84,16 @@ class RealFileTestCase2(RealFileTestCase1):
         result = self.rf.readdir()
         self.assertEqual(result, os.listdir(self.file))
 
+class SymlinkRealFileTestCase(unittest.TestCase):
+    def setUp(self):
+        self.file = __file__
+        self.slf = SymlinkRealFile(self.file)
+
+    def test_getattr(self):
+        self.assertEqual(self.slf.getattr().st_mode & stat.S_IFLNK, stat.S_IFLNK)
+
+    def test_readlink(self):
+        readlink = self.slf.readlink()
+        self.assertFalse(isinstance(readlink, unicode))
+        self.assertEqual(readlink, self.file)
+

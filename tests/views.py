@@ -98,12 +98,12 @@ class ViewTest(unittest.TestCase):
     def test_realfile(self):
         """Check that a path containing a real file returns a RealFile object"""
         result = self.view.get('/languages/English/Bad Taste (1987)', self.db_name)
-        self.assertEqual(result.__class__, filetypes.RealFile)
+        self.assertTrue(isinstance(result, filetypes.RealFile))
         self.assertEqual(result._target, path_relative_to_source("Bad Taste (1987)"))
 
     def test_realfile2(self):
         result = self.view.get('/languages/English/Bad Taste (1987)/movie.stag', self.db_name)
-        self.assertEqual(result.__class__, filetypes.RealFile)
+        self.assertTrue(isinstance(result, filetypes.RealFile))
         self.assertEqual(result._target, os.path.join(path_relative_to_source("Bad Taste (1987)"), 'movie.stag'))
 
     def test_missing_path(self):
