@@ -60,14 +60,12 @@ class RealFile(StagFile):
     A file in StagFS that points to a real file on disk.
     """
     def __init__(self, target):
-        logger.debug("New RealFile -> %r" % target)
         if not os.path.exists(target):
             from stag.views import DoesNotExist
             raise DoesNotExist(target)
         self._target = target
     
     def getattr(self, *args):
-        logger.debug("GETATTR: args %r" % (args,))
         file_stat = os.stat(self._target)
         stat_obj = Stat()
 
@@ -96,7 +94,6 @@ class SymlinkRealFile(RealFile):
     """
 
     def getattr(self, *args):
-        logger.debug("GETATTR: args %r" % (args,))
         stat_obj = Stat()
         stat_obj.st_mode = stat.S_IFLNK | stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
         stat_obj.st_ino = 0
@@ -109,6 +106,5 @@ class SymlinkRealFile(RealFile):
         return stat_obj
 
     def readlink(self):
-        logger.debug("READLINLK %s" % self._target)
         return str(self._target)
 
