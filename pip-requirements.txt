@@ -1,2 +1,2 @@
 fuse-python
-pyinotify
+inotifyx

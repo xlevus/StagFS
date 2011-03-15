@@ -7,6 +7,8 @@ against files and folders.
 
 Data is stored in JSON .stag files contained within the files directory.
 
+See pip-requirements.txt for a list of required packages.
+
 Notes:
  * Filenames are relative to the .stag file.
  * Nested tag-sets are not yet supported.

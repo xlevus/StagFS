@@ -1,0 +1,3 @@
+* Serve files directly from inside StagFS as opposed to symlinks
+* Fix weird 'caching' issue after inotify events
+
