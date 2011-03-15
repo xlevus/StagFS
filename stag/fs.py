@@ -44,12 +44,14 @@ TEMP_CONFIG = {
     'loaders': (('stag', stag.loaders.StagfileLoader),)
 }
 
+
 def flag2mode(flags):
     md = {os.O_RDONLY: 'r', os.O_WRONLY: 'w', os.O_RDWR: 'w+'}
     m = md[flags & (os.O_RDONLY | os.O_WRONLY | os.O_RDWR)]
     if flags | os.O_APPEND:
         m = m.replace('w', 'a', 1)
     return m
+
 
 def lock(func):
     """Monitor pattern lock decorator."""
@@ -80,7 +82,7 @@ class StagFuse(fuse.Fuse):
         self.data.load_initial()
 
         self.view_manager = stag.views.Dispatcher(TEMP_CONFIG['db_name'])
-
+        
         logger.debug('Fuse init complete.')
 
     def fsinit(self):
@@ -99,20 +101,22 @@ class StagFuse(fuse.Fuse):
             except UnicodeEncodeError:
                 logging.warn("Unable to encode '%s'" % row)
 
-# Lazily create a bunch of attributes
-for func_name in ['chmod','chown','link','mkdir','mknod','readlink','rename','rmdir',
-        'statfs','symlink','truncate','unlink','utime','getattr']:
-    def func(self, path, *args, **kwargs):
-        logger.debug("%s on %r.   Args:%r   Kwargs:%r" % (func_name, path, args, kwargs))
-        try:
-            result = self.view_manager.get(path)
-            return getattr(result, func_name)(*args, **kwargs)
-        except AttributeError:
-            return -errno.ENOSYS
-        except stag.views.DoesNotExist:
-            logger.debug("%r does not exist" % path)
-            return -errno.ENOENT
-    func.__name__ = func_name
-    func.__doc__ = "StagFS.%s - fuse function. See implementations in stag.filetypes" % func_name 
-    setattr(StagFuse, func_name, func)
+    def statfs(self):
+        return (0,)*10
+
+    def __getattr__(self, name):
+        if not name in ['chmod','chown','link','mkdir','mknod','readlink','rename','rmdir', 'symlink','truncate','unlink','utime','getattr']:
+            raise AttributeError
+        def inner(path, *args, **kwargs):
+            logger.debug("%s on %r.   Args:%r   Kwargs:%r" % (name, path, args, kwargs))
+            try:
+                result = self.view_manager.get(path)
+                return getattr(result, name)(*args, **kwargs)
+            except AttributeError:
+                return -errno.ENOSYS
+            except stag.views.DoesNotExist:
+                logger.debug("%r does not exist" % path)
+                return -errno.ENOENT
+        inner.__name__ = name
+        return inner
 

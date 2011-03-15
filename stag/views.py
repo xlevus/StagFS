@@ -13,6 +13,7 @@ class DoesNotExist(StagException):
         self.failed_path = failed_path
         self.args = ("Path %r does not exist" % failed_path,)
 
+
 class Dispatcher(object):
     def __init__(self, db_name):
         self.db_name = db_name
