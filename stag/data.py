@@ -19,8 +19,9 @@
 
 import os
 import time
-import threading
 import logging
+import threading
+import inotifyx
 
 import stag.db
 import stag.utils
@@ -32,11 +33,36 @@ class DataManager(threading.Thread):
         super(DataManager, self).__init__()
 
         self.db_name = db_name
-        self.source_folders = source_folders
+        self.source_folders = map(os.path.abspath, source_folders)
         self.loaders = loaders
+
+    def start(self, exit_event):
+        self.exit_event = exit_event
+        self.fd = inotifyx.init()
+        self.wd_list = []
+
+        events = inotifyx.IN_CREATE | inotifyx.IN_DELETE | inotifyx.IN_MODIFY
+        for path in self.source_folders:
+            path = os.path.abspath(path)
+            try:
+                self.wd_list.append(inotifyx.add_watch(self.fd, os.path.abspath(path), events))
+            except Exception, e:
+                logger.error("Failed to setup inotify watch on '%s'. Reason: %r" % (path, e))
+
+        super(DataManager, self).start()
     
     def run(self):
-        pass
+        while not self.exit_event.isSet():
+            # Setting a significant timeout here will make the FS unmountable
+            # Instead use a short timeout on get_events and sleep afterwards
+            events = inotifyx.get_events(self.fd, 0.1)
+            for e in events:
+                logger.debug("Inotify Event: %r" % e)
+            time.sleep(5)
+       
+        for wd in self.wd_list:
+            rm_watch(self.fd, wd)
+        os.close(self.fd)
     
     def load_initial(self):
         conn = stag.db.ConnectionWrapper(self.db_name)

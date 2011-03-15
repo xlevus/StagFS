@@ -22,6 +22,7 @@ import errno
 import fcntl
 import logging
 import itertools
+import threading
 import functools
 
 from threading import Lock
@@ -86,7 +87,13 @@ class StagFuse(fuse.Fuse):
         logger.debug('Fuse init complete.')
 
     def fsinit(self):
-        self.data.start()
+        logger.debug('fsinit')
+        self.exit_event = threading.Event()
+        self.data.start(self.exit_event)
+
+    def fsdestroy(self):
+        self.exit_event.set()
+        logger.debug('fsdestroy')
     
     def mythread(self):
         logger.debug('mythread')
@@ -102,6 +109,7 @@ class StagFuse(fuse.Fuse):
                 logging.warn("Unable to encode '%s'" % row)
 
     def statfs(self):
+        """TODO: Fill this with decent values"""
         return (0,)*10
 
     def __getattr__(self, name):
@@ -113,7 +121,10 @@ class StagFuse(fuse.Fuse):
                 result = self.view_manager.get(path)
                 return getattr(result, name)(*args, **kwargs)
             except AttributeError, e:
-                logger.error("StagFS error: %s" % e)
+                if hasattr(result, name): 
+                    # Check that the AttributeError wasn't raised above
+                    # if it wasn't, reraise it as it was probably important
+                    raise
                 return -errno.ENOSYS
             except stag.views.DoesNotExist:
                 logger.debug("%r does not exist" % path)
