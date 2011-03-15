@@ -1,4 +1,6 @@
 env
+mountpoint
+stagfs.sqlite
 
 *.pyc
 .*.swp
